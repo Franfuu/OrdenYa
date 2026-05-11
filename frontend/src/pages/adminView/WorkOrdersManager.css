@@ -1,0 +1,406 @@
+/* Work Orders Manager Styles */
+.work-orders-manager {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.work-orders-manager__page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-4);
+}
+
+.work-orders-manager__title {
+  margin-bottom: 0;
+}
+
+.work-orders-manager__form-card {
+  margin-bottom: 2rem;
+  padding: var(--space-4);
+}
+
+.work-orders-manager__form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+  margin-top: 1rem;
+}
+
+.work-orders-manager__label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.work-orders-manager__col-span-2 {
+  grid-column: span 2;
+}
+
+.work-orders-manager__col-full {
+  grid-column: 1 / -1;
+}
+
+.work-orders-manager__section-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 1.5rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border-color);
+  color: var(--primary);
+}
+
+.work-orders-manager__section-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.work-orders-manager__section-header svg {
+  opacity: 0.8;
+}
+
+.work-orders-manager__image-zone {
+  grid-column: 1 / -1;
+  padding: var(--space-3);
+  border: 1px dashed var(--border-color);
+  border-radius: var(--radius-md);
+  background-color: var(--bg);
+}
+
+.work-orders-manager__image-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.work-orders-manager__image-input {
+  flex: 1;
+}
+
+.work-orders-manager__image-preview {
+  height: 50px;
+  width: 50px;
+  object-fit: cover;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+}
+
+.work-orders-manager__actions {
+  display: flex;
+  gap: 10px;
+  grid-column: 1 / -1;
+  margin-top: 0.5rem;
+}
+
+.work-orders-manager__list-title {
+  margin-bottom: 1rem;
+}
+
+.work-orders-manager__error {
+  color: var(--danger);
+}
+
+.work-orders-manager__code {
+  font-weight: 600;
+}
+
+.work-orders-manager__actions-cell {
+  text-align: right;
+  vertical-align: middle;
+}
+
+.work-orders-manager__actions-flex {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+}
+
+.work-orders-manager__btn-sm {
+  padding: 0.4rem 0.8rem;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.work-orders-manager__btn-sm--last {
+  padding: 0.4rem 0.8rem;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.work-orders-manager__empty {
+  padding: 20px;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+/* Status badge styles */
+.work-orders-manager__status-badge {
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  font-weight: bold;
+}
+
+.work-orders-manager__status-badge--finalizada {
+  background-color: var(--success-light);
+  color: var(--success);
+}
+
+.work-orders-manager__status-badge--instalacion {
+  background-color: var(--warning-light);
+  color: var(--warning);
+}
+
+.work-orders-manager__status-badge--taller {
+  background-color: var(--info-light);
+  color: var(--info);
+}
+
+.work-orders-manager__status-badge--revision {
+  background-color: var(--warning-light);
+  color: var(--warning);
+  border: 1px solid rgba(245,158,11,0.3);
+}
+
+.work-orders-manager__supervisor {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+/* Trabajadores multi-select chips */
+.work-orders-manager__trabajadores-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 0.25rem;
+}
+
+.work-orders-manager__trabajador-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0.4rem 0.9rem;
+  border: 1px solid var(--border-color);
+  border-radius: 99px;
+  background-color: var(--bg);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  user-select: none;
+}
+
+.work-orders-manager__trabajador-chip:hover {
+  border-color: var(--primary);
+  background-color: var(--primary-light);
+}
+
+.work-orders-manager__trabajador-chip--selected {
+  background-color: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+
+.work-orders-manager__trabajador-chip--selected:hover {
+  background-color: var(--primary-hover);
+}
+
+.work-orders-manager__trabajador-checkbox {
+  display: none;
+}
+
+.work-orders-manager__no-workers {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  font-style: italic;
+}
+
+/* Supervisor chip color variant */
+.work-orders-manager__supervisor-chip--selected {
+  background-color: var(--warning);
+  color: white;
+  border-color: var(--warning);
+}
+
+.work-orders-manager__supervisor-chip--selected:hover {
+  background-color: var(--warning-dark);
+}
+
+/* Thumbnails in List */
+.work-orders-manager__thumbnail-wrap {
+  width: 40px;
+  height: 40px;
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
+  background-color: var(--bg);
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.work-orders-manager__thumbnail-wrap:hover {
+  transform: scale(1.1);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.work-orders-manager__thumbnail {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.work-orders-manager__no-image {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--bg);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
+  opacity: 0.5;
+}
+
+/* ── Touch targets en botones de acción de tabla ── */
+.table-action-btn {
+  min-width: var(--touch);
+  min-height: var(--touch);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  transition: background-color var(--transition);
+}
+.table-action-btn:hover { background: var(--bg); }
+
+/* ── Fila clickable ── */
+.work-orders-manager__row--clickable {
+  cursor: pointer;
+}
+
+/* ── Columnas ordenables ── */
+.sortable-th {
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+.sortable-th:hover { color: var(--primary); }
+
+.sort-icon {
+  display: inline-block;
+  margin-left: 4px;
+  font-size: 0.7rem;
+  color: var(--primary);
+}
+.sort-icon--neutral {
+  color: var(--text-secondary);
+  opacity: 0.5;
+}
+
+/* ── Fecha límite badges ── */
+.deadline-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.deadline--overdue {
+  background: rgba(239,68,68,0.12);
+  color: #ef4444;
+  border: 1px solid rgba(239,68,68,0.25);
+}
+.deadline--soon {
+  background: rgba(245,158,11,0.12);
+  color: #f59e0b;
+  border: 1px solid rgba(245,158,11,0.25);
+}
+.deadline--ok {
+  background: rgba(16,185,129,0.10);
+  color: #10b981;
+  border: 1px solid rgba(16,185,129,0.20);
+}
+.deadline--none {
+  color: var(--text-secondary);
+  background: transparent;
+  border: none;
+}
+
+/* ── Paginación ── */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-2);
+  border-top: 1px solid var(--border-color);
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.pagination__info {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+.pagination__controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pagination__btn {
+  min-width: 34px;
+  height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--card-bg);
+  color: var(--text-primary);
+  font-size: var(--text-sm);
+  font-family: var(--font);
+  cursor: pointer;
+  transition: all var(--transition);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+}
+.pagination__btn:hover:not(:disabled) {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+.pagination__btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.pagination__btn--active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+  font-weight: 600;
+}
+.pagination__btn--active:hover {
+  color: #fff;
+}
+
+.pagination__dots {
+  padding: 0 4px;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+}
+
+/* ── Responsive tabla ── */
+@media (max-width: 1023px) {
+  .table-container { font-size: var(--text-xs); }
+}

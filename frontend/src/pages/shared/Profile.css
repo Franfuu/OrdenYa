@@ -1,0 +1,59 @@
+/* Profile Styles */
+.profile-wrapper {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 2rem 0;
+}
+
+.profile-title {
+  margin-bottom: var(--space-4);
+}
+
+.profile-card {
+  padding: 2rem;
+}
+
+.profile-success {
+  padding: var(--space-3);
+  background-color: var(--success-light);
+  color: var(--success);
+  border-radius: var(--radius-md);
+  margin-bottom: 1rem;
+}
+
+.profile-error {
+  padding: var(--space-3);
+  background-color: var(--danger-light);
+  color: var(--danger);
+  border-radius: var(--radius-md);
+  margin-bottom: 1rem;
+}
+
+.profile-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.profile-label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.profile-label-hint {
+  font-weight: normal;
+  color: var(--text-secondary);
+}
+
+.profile-input {
+  width: 100%;
+}
+
+.profile-submit {
+  margin-top: 0.5rem;
+  align-self: center;
+  padding: 0.55rem 2rem;
+  font-size: 0.88rem;
+}

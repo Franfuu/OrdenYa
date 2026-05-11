@@ -1,0 +1,101 @@
+/* Trabajador Dashboard Styles */
+
+/* Active Jobs */
+.active-jobs {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.active-jobs__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.active-jobs__title {
+  font-size: 1.75rem;
+  margin-bottom: 0.5rem;
+  color: var(--text-primary);
+}
+
+.active-jobs__subtitle {
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.active-jobs__log-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: var(--primary);
+  border-radius: 99px;
+}
+
+/* Filter Badges */
+.active-jobs__filters {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 2rem;
+}
+
+.active-jobs__filter-btn {
+  padding: 0.5rem 1.25rem;
+  border-radius: 99px;
+  border: 1px solid var(--border-color);
+  background-color: var(--card-bg);
+  color: var(--text-primary);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.active-jobs__filter-btn:hover {
+  background-color: var(--bg);
+}
+
+.active-jobs__filter-btn--active {
+  background-color: var(--text-primary);
+  color: white;
+  font-weight: 600;
+}
+
+/* Table */
+.active-jobs__table-wrapper {
+  padding: 0;
+}
+
+.active-jobs__table {
+  margin: 0;
+}
+
+.active-jobs__order-id {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.active-jobs__date {
+  color: var(--text-secondary);
+}
+
+.active-jobs__client-row {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.active-jobs__client-name {
+  display: block;
+}
+
+.active-jobs__client-address {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.active-jobs__view-btn {
+  color: var(--primary);
+  border-color: transparent;
+  background-color: var(--primary-light);
+  font-weight: 600;
+}

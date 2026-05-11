@@ -1,0 +1,8 @@
+.env
+node_modules/
+package-lock.json
+.claude/
+.superpowers/
+docs/
+ClaudeSkills/
+iniciar_proyecto.bat

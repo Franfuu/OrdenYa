@@ -1,0 +1,104 @@
+/* Users Manager Styles */
+.users-manager {
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.users-manager__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-4);
+}
+
+.users-manager__loading {
+  text-align: center;
+  color: var(--text-secondary);
+  margin-top: 2rem;
+}
+
+.users-manager__title {
+  margin-bottom: 0;
+}
+
+.users-manager__form-card {
+  margin-bottom: 2rem;
+  padding: var(--space-4);
+}
+
+.users-manager__form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-top: 1rem;
+}
+
+.users-manager__label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.users-manager__section-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  grid-column: 1 / -1;
+  margin-top: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border-color);
+  color: var(--primary);
+}
+
+.users-manager__section-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.users-manager__label-hint {
+  font-weight: normal;
+  color: var(--text-secondary);
+}
+
+.users-manager__actions {
+  display: flex;
+  gap: 10px;
+  grid-column: 1 / -1;
+  margin-top: 0.5rem;
+}
+
+.users-manager__list-title {
+  margin-bottom: 1rem;
+}
+
+.users-manager__error {
+  color: var(--danger);
+}
+
+.users-manager__name {
+  font-weight: 500;
+}
+
+.users-manager__actions-cell {
+  text-align: right;
+}
+
+.users-manager__btn-sm {
+  margin-right: 10px;
+  padding: 0.4rem 0.8rem;
+  font-size: 0.85rem;
+}
+
+.users-manager__btn-sm--last {
+  padding: 0.4rem 0.8rem;
+  font-size: 0.85rem;
+}
+
+.users-manager__empty {
+  padding: 20px;
+  text-align: center;
+  color: var(--text-secondary);
+}

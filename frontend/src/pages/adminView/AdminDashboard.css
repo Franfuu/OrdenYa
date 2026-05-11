@@ -1,0 +1,82 @@
+/* Dashboard Shared Layout Styles */
+.dashboard-layout {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+.dashboard-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.dashboard-content {
+  padding: var(--space-4);
+  overflow-y: auto;
+  flex: 1;
+}
+
+@media (max-width: 900px) {
+  .dashboard-content { padding: var(--space-2); }
+}
+
+.configuracion-page {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.configuracion-page__title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 1.25rem;
+  color: var(--text-primary);
+}
+
+.configuracion-page__tabs {
+  display: flex;
+  gap: 2px;
+  border-bottom: 2px solid var(--border-color);
+  margin-bottom: var(--space-4);
+}
+
+.configuracion-page__tab {
+  padding: 0.7rem 1.25rem;
+  background: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 0.92rem;
+  font-weight: 600;
+  margin-bottom: -2px;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.configuracion-page__tab:hover { color: var(--primary); }
+
+.configuracion-page__tab--active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+}
+
+.configuracion-page__content {
+  min-height: 400px;
+  padding: 0.25rem 0;
+}
+
+/* ── Responsive stats ── */
+@media (max-width: 1023px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+}

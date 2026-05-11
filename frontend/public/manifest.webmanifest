@@ -1,0 +1,42 @@
+{
+  "name": "OrdenYa — Gestión de órdenes de trabajo",
+  "short_name": "OrdenYa",
+  "description": "Coordina órdenes, asigna piezas y trabajadores, y monitoriza la producción en tiempo real.",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0d0a1f",
+  "theme_color": "#3C3489",
+  "lang": "es-ES",
+  "dir": "ltr",
+  "categories": ["business", "productivity", "utilities"],
+  "icons": [
+    {
+      "src": "/logo_ordenya_pro.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo_ordenya_pro.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Mis órdenes",
+      "short_name": "Órdenes",
+      "url": "/login",
+      "description": "Acceder a la lista de órdenes asignadas"
+    },
+    {
+      "name": "Crear orden",
+      "short_name": "Nueva",
+      "url": "/admin/ordenes/nuevo"
+    }
+  ]
+}

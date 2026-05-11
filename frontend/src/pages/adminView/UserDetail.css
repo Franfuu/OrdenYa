@@ -1,0 +1,109 @@
+/* ── User Detail Page ────────────────────────────────────── */
+
+.user-detail {
+  max-width: 780px;
+  margin: 0 auto;
+}
+
+/* Header con "Volver" a la izquierda y acciones a la derecha */
+.detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.detail-header__actions {
+  display: flex;
+  gap: 0.6rem;
+}
+
+/* Card */
+.user-detail__card {
+  padding: 2rem;
+}
+
+/* Hero: avatar grande + nombre + badge */
+.user-detail__hero {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding-bottom: 1.75rem;
+  margin-bottom: 1.75rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.user-detail__avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+  color: white;
+  font-size: 2rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 4px 14px rgba(0, 110, 106, 0.35);
+}
+
+.user-detail__hero-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.user-detail__name {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.user-detail__role-badge {
+  font-size: 0.9rem;
+  padding: 0.3rem 0.8rem;
+  align-self: flex-start;
+}
+
+/* Grid de campos */
+.user-detail__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem 2rem;
+}
+
+.user-detail__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.user-detail__field-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+}
+
+.user-detail__field-value {
+  font-size: 1rem;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+/* Error genérico */
+.detail-error {
+  color: var(--danger);
+  text-align: center;
+  margin-top: 2rem;
+}
+
+@media (max-width: 600px) {
+  .user-detail__grid { grid-template-columns: 1fr; }
+  .user-detail__hero { flex-direction: column; text-align: center; }
+}

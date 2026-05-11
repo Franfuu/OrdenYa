@@ -1,0 +1,223 @@
+/* ── Work Order Detail Page ───────────────────────────────── */
+
+.wo-detail {
+  max-width: 1060px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+/* ── Hero card ──────────────────────────── */
+.wo-detail__hero-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 1.75rem 2rem;
+  gap: 1.5rem;
+}
+
+.wo-detail__hero-left {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  flex: 1;
+}
+
+.wo-detail__code {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--primary);
+  background: var(--primary-light);
+  padding: 0.25rem 0.6rem;
+  border-radius: var(--radius-sm);
+  align-self: flex-start;
+}
+
+.wo-detail__title {
+  font-size: 1.65rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+  line-height: 1.2;
+}
+
+/* Status badge */
+.wo-detail__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0.35rem 0.85rem;
+  border-radius: 99px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  align-self: flex-start;
+}
+
+.wo-detail__badge--taller {
+  background: var(--info-light);
+  color: var(--info);
+}
+
+.wo-detail__badge--instalacion {
+  background: var(--warning-light);
+  color: var(--warning);
+}
+
+.wo-detail__badge--finalizada {
+  background: var(--success-light);
+  color: var(--success-hover);
+}
+
+/* Hero image */
+.wo-detail__hero-image-wrap {
+  flex-shrink: 0;
+}
+
+.wo-detail__hero-image {
+  width: 140px;
+  height: 140px;
+  object-fit: cover;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+}
+
+/* ── Body: 2 cols ───────────────────────── */
+.wo-detail__body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+  align-items: start;
+}
+
+.wo-detail__right-col {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+/* ── Section cards ──────────────────────── */
+.wo-detail__section {
+  padding: 1.5rem 1.75rem;
+}
+
+.wo-detail__section-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-secondary);
+  margin: 0 0 1rem;
+  padding-bottom: 0.6rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+/* Definition list */
+.wo-detail__dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.55rem 1.5rem;
+  margin: 0;
+}
+
+.wo-detail__dl dt {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  font-weight: 600;
+  white-space: nowrap;
+  padding-top: 1px;
+}
+
+.wo-detail__dl dd {
+  font-size: 0.95rem;
+  color: var(--text-primary);
+  font-weight: 500;
+  margin: 0;
+  word-break: break-word;
+}
+
+/* Personal */
+.wo-detail__people-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+  margin: 0.75rem 0 0.4rem;
+}
+
+.wo-detail__people-label:first-of-type {
+  margin-top: 0;
+}
+
+.wo-detail__people-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 0.5rem;
+}
+
+.wo-detail__chip {
+  padding: 0.3rem 0.75rem;
+  border-radius: 99px;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.wo-detail__chip--supervisor {
+  background: var(--warning-light);
+  color: var(--warning);
+}
+
+.wo-detail__chip--trabajador {
+  background: var(--info-light);
+  color: var(--info);
+}
+
+.wo-detail__chip-empty {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+/* Observaciones */
+.wo-detail__obs {
+  padding: 1.5rem 1.75rem;
+}
+
+.wo-detail__obs-text {
+  font-size: 0.97rem;
+  color: var(--text-primary);
+  line-height: 1.65;
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.detail-section {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  margin-bottom: var(--space-3);
+  box-shadow: var(--shadow-sm);
+}
+
+.detail-section-title {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: var(--space-3);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--border-color);
+}
+
+@media (max-width: 720px) {
+  .wo-detail__body { grid-template-columns: 1fr; }
+  .wo-detail__hero-card { flex-direction: column; }
+  .wo-detail__hero-image { width: 100%; height: 200px; }
+}
