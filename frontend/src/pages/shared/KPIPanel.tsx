@@ -59,22 +59,26 @@ export const KPIPanel: React.FC<Props> = ({ showUsers = true }) => {
 
   const now = new Date();
   const ordersWithDeadline = orders
-    .filter(o => !isOrderFinalizada(o) && o.fecha_fin)
-    .map(o => ({ order: o, dias: daysBetween(now, new Date(o.fecha_fin!)) }))
+    .flatMap(o => (!isOrderFinalizada(o) && o.fecha_fin) ? [{ order: o, dias: daysBetween(now, new Date(o.fecha_fin!)) }] : [])
     .sort((a, b) => a.dias - b.dias)
     .slice(0, 5);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
       <div className="kpi-grid">
-        {kpis.map((k, i) => (
-          <div key={i} className="glass-card kpi-card" onClick={k.onClick} style={{
+        {kpis.map((k) => (
+          <div key={k.label} className="glass-card kpi-card"
+            role={k.onClick ? "button" : undefined}
+            tabIndex={k.onClick ? 0 : undefined}
+            onClick={k.onClick}
+            onKeyDown={k.onClick ? (e) => { if (e.key === "Enter" || e.key === " ") k.onClick!(); } : undefined}
+            style={{
             borderLeft: `4px solid ${k.color}`,
             cursor: k.onClick ? "pointer" : "default",
             transition: "transform 0.15s, box-shadow 0.15s",
           }}
-          onMouseEnter={k.onClick ? (e) => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = `0 10px 28px ${k.color}30`; } : undefined}
-          onMouseLeave={k.onClick ? (e) => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = ""; } : undefined}
+          onMouseEnter={k.onClick ? (e) => Object.assign(e.currentTarget.style, { transform: "translateY(-2px)", boxShadow: `0 10px 28px ${k.color}30` }) : undefined}
+          onMouseLeave={k.onClick ? (e) => Object.assign(e.currentTarget.style, { transform: "translateY(0)", boxShadow: "" }) : undefined}
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <span style={{ fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", opacity: 0.7 }}>
@@ -122,16 +126,8 @@ export const KPIPanel: React.FC<Props> = ({ showUsers = true }) => {
                     width: "100%",
                     transition: "transform 0.15s, box-shadow 0.15s, border-color 0.15s",
                   }}
-                  onMouseEnter={e => {
-                    e.currentTarget.style.transform = "translateX(2px)";
-                    e.currentTarget.style.boxShadow = `0 4px 12px ${color}25`;
-                    e.currentTarget.style.borderColor = color;
-                  }}
-                  onMouseLeave={e => {
-                    e.currentTarget.style.transform = "translateX(0)";
-                    e.currentTarget.style.boxShadow = "none";
-                    e.currentTarget.style.borderColor = `${color}40`;
-                  }}
+                  onMouseEnter={e => Object.assign(e.currentTarget.style, { transform: "translateX(2px)", boxShadow: `0 4px 12px ${color}25`, borderColor: color })}
+                  onMouseLeave={e => Object.assign(e.currentTarget.style, { transform: "translateX(0)", boxShadow: "none", borderColor: `${color}40` })}
                 >
                   <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", minWidth: 0 }}>
                     <strong style={{ fontSize: "0.88rem", fontFamily: "var(--font-display)", color: "var(--text-primary)" }}>{order.codigo_orden}</strong>

@@ -72,6 +72,7 @@ class DatabaseSeeder extends Seeder
                 'pieza_id' => $piezas[$piezaCode]->id,
                 'nombre_cliente' => $cliente,
             ]);
+            $order->update(['qr_codigo' => url("/trabajador/ordenes/{$order->id}")]);
             foreach ($deptSlugs as $slug) {
                 $dept = Department::where('slug', $slug)->first();
                 $wod = $order->departments()->create(['department_id' => $dept->id]);
@@ -122,8 +123,9 @@ class DatabaseSeeder extends Seeder
                 'pieza_id' => $piezas[$piezaCode]->id,
                 'prioridad' => $prioridades[array_rand($prioridades)],
                 'nombre_cliente' => $cliente,
-                'qr_codigo' => url("/admin/ordenes/ver/{$i}"),
+                'qr_codigo' => null,
             ]);
+            $order->update(['qr_codigo' => url("/trabajador/ordenes/{$order->id}")]);
 
             $workerIds = collect($trabajadores)->random(rand(1, 2))->pluck('id')->toArray();
             $workersByDept = [];

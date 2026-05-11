@@ -84,7 +84,7 @@ export const UsersList: React.FC = () => {
     });
 
     if (sortKey) {
-      result = [...result].sort((a, b) => {
+      result = result.toSorted((a, b) => {
         const va = String((a as any)[sortKey] ?? "");
         const vb = String((b as any)[sortKey] ?? "");
         const cmp = sortKey === "id"
@@ -237,7 +237,7 @@ export const UsersList: React.FC = () => {
                   </button>
                   {pageNumbers.map((p, i) =>
                     p === "..." ? (
-                      <span key={`dots-${i}`} className="pagination__dots">…</span>
+                      <span key={`dots-after-${pageNumbers[i - 1]}`} className="pagination__dots">…</span>
                     ) : (
                       <button
                         key={p}

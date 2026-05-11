@@ -26,7 +26,7 @@ export const ImageModal: React.FC<ImageModalProps> = ({ src, alt, onClose }) => 
   }, [onClose]);
 
   return ReactDOM.createPortal(
-    <div className="image-modal-overlay" onClick={onClose}>
+    <div className="image-modal-overlay" role="button" tabIndex={0} onClick={onClose} onKeyDown={(e) => { if (e.key === 'Escape' || e.key === 'Enter') onClose(); }}>
       <div className="image-modal-content" onClick={(e) => e.stopPropagation()}>
         <button className="image-modal-close" onClick={onClose} title="Cerrar">
           <CancelIcon size={24} color="white" />

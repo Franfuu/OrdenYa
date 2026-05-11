@@ -56,10 +56,15 @@ export const QRScanner: React.FC<Props> = ({ onResult, onClose }) => {
   }, []);
 
   return (
-    <div onClick={onClose} style={{
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={onClose}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onClose(); }}
+      style={{
       position: "fixed", inset: 0,
       background: "rgba(0,0,0,0.8)",
-      zIndex: 10000,
+      zIndex: 50,
       display: "flex", alignItems: "center", justifyContent: "center",
       padding: "1rem",
     }}>
@@ -77,7 +82,7 @@ export const QRScanner: React.FC<Props> = ({ onResult, onClose }) => {
           </svg>
           Escanea QR de la orden
         </h3>
-        <div ref={ref} style={{ width: "100%", minHeight: 300, borderRadius: 8, overflow: "hidden", background: "#000" }} />
+        <div ref={ref} style={{ width: "100%", minHeight: 300, borderRadius: 8, overflow: "hidden", background: "#0a0a0f" }} />
         {error && <p style={{ color: "#ef4444", margin: "0.5rem 0 0" }}>{error}</p>}
         <button onClick={onClose} className="wo-form__btn-outline" style={{ marginTop: "0.7rem", width: "100%" }}>
           Cerrar

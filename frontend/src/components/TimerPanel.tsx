@@ -166,11 +166,12 @@ export function TimerPanel({ workOrderId, activeSession, onStart, onPause, onSto
       {/* Pieces Input (shown when stopping) */}
       {showPiezasInput && isRunning === false && activeSession?.end_time === null && (
         <div className="mb-4 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-          <label className="block text-sm font-semibold text-gray-700 mb-2">
+          <label htmlFor="timer-piezas" className="block text-sm font-semibold text-gray-700 mb-2">
             Piezas completadas
           </label>
           <div className="flex gap-2">
             <input
+              id="timer-piezas"
               type="number"
               min="0"
               value={piezas}

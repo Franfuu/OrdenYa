@@ -1,21 +1,8 @@
-import type { AuthSession } from "../types/Auth";
-
-const CLAVE = "auth_session";
-
+// Token is stored in HttpOnly cookie by PHP — JS cannot access it.
+// Session is restored by calling GET /api/auth/me on app mount.
+// This file is kept for compatibility but does nothing.
 export const authStorage = {
-    get() : AuthSession | null {
-        const datosBrutos = localStorage.getItem(CLAVE);
-        if (!datosBrutos) return null;
-        try {
-            return JSON.parse(datosBrutos) as AuthSession;
-        } catch {
-            return null;
-        }
-    },
-    set(session: AuthSession) : void {
-        localStorage.setItem(CLAVE, JSON.stringify(session)) // ← persiste para siempre la sesion
-    },
-    clear() {
-        localStorage.removeItem(CLAVE);
-    }
-}
+    get() { return null; },
+    set(_session: unknown) { /* noop — token lives in HttpOnly cookie */ },
+    clear() { /* noop */ },
+};

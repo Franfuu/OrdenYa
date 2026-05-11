@@ -111,7 +111,7 @@ export const DiarioTrabajador: React.FC<Props> = ({ userId, userName }) => {
     <div className="animate-fade-in" style={{ padding: '0.5rem' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
           <div>
-            <h2 style={{ fontSize: '1.4rem', fontWeight: 700, margin: 0 }}>Diario de {targetUserName}</h2>
+            <h2 style={{ fontSize: '1.4rem', fontWeight: 600, margin: 0 }}>Diario de {targetUserName}</h2>
             <p className="diario__subtitle-text">Actividad y fichajes por día</p>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -172,7 +172,11 @@ export const DiarioTrabajador: React.FC<Props> = ({ userId, userName }) => {
                         }, 0);
                         const totalPiezas = groupSessions.reduce((sum, s) => sum + (s.piezas || 0), 0);
                         const firstStart = new Date(groupSessions[0].start_time);
-                        const lastEnd = groupSessions.map(s => s.end_time ? new Date(s.end_time) : null).filter(Boolean).sort((a, b) => b!.getTime() - a!.getTime())[0];
+                        const lastEnd = groupSessions.reduce((max, s) => {
+                          if (!s.end_time) return max;
+                          const d = new Date(s.end_time);
+                          return max === null || d > max ? d : max;
+                        }, null as Date | null);
 
                         // Desglose tiempo por fase (solo sesiones con fase real)
                         const phaseMap: Record<string, { name: string; seconds: number }> = {};
@@ -194,7 +198,10 @@ export const DiarioTrabajador: React.FC<Props> = ({ userId, userName }) => {
                             >
                                 {/* Cabecera del grupo */}
                                 <div
+                                    role="button"
+                                    tabIndex={0}
                                     onClick={() => toggleGroup(group.key)}
+                                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') toggleGroup(group.key); }}
                                     className={`diario__group-header${isGroupExpanded ? ' diario__group-header--expanded' : ''}`}
                                     style={{ gap: '0.75rem', padding: '0.85rem 1rem', userSelect: 'none' }}
                                 >

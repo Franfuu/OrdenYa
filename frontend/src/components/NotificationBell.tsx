@@ -116,7 +116,7 @@ export const NotificationBell: React.FC = () => {
           border: "1px solid var(--border-color, #cbd5e1)",
           borderRadius: 14,
           boxShadow: "0 24px 60px rgba(0,0,0,0.40), 0 0 0 1px rgba(83, 74, 183, 0.10)",
-          zIndex: 9999,
+          zIndex: 50,
           animation: "notifSlide 0.18s cubic-bezier(0.16, 1, 0.3, 1)",
         }}>
           <style>{`@keyframes notifSlide{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}`}</style>

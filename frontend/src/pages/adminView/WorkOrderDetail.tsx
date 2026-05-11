@@ -132,7 +132,7 @@ export const WorkOrderDetail: React.FC = () => {
           </div>
         </div>
         {order.imagen && (
-          <div className="wo-detail__hero-image-wrap" onClick={() => setIsModalOpen(true)} style={{ cursor: "pointer" }}>
+          <div className="wo-detail__hero-image-wrap" role="button" tabIndex={0} onClick={() => setIsModalOpen(true)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setIsModalOpen(true); }} style={{ cursor: "pointer" }}>
             <img src={storageUrl(order.imagen) ?? ''} alt="Imagen" className="wo-detail__hero-image" />
           </div>
         )}
@@ -141,8 +141,8 @@ export const WorkOrderDetail: React.FC = () => {
       {/* Panel HL specs */}
       {order.hl_referencia && (
         <div className="glass-card" style={{ marginBottom: 20 }}>
-          <h3 style={{ color: '#3b82f6', marginBottom: 12, fontSize: 15, fontWeight: 700 }}>
-            Especificaciones HL — {order.hl_referencia.referencia}
+          <h3 style={{ color: '#3b82f6', marginBottom: 12, fontSize: 15, fontWeight: 600 }}>
+            Especificaciones HL: {order.hl_referencia.referencia}
           </h3>
           {order.hl_referencia.imagen && (
             <img
@@ -262,7 +262,7 @@ export const WorkOrderDetail: React.FC = () => {
 
       <div className="glass-card wo-detail__section" style={{ display: "flex", gap: "1.2rem", alignItems: "center" }}>
         <div style={{ background: "#fff", padding: "0.6rem", borderRadius: 8 }}>
-          <QRCodeSVG value={(order as any).qr_codigo ?? window.location.href} size={120} level="M" />
+          <QRCodeSVG value={(order as any).qr_codigo ?? `${window.location.origin}/trabajador/ordenes/${order.id}`} size={120} level="M" />
         </div>
         <div>
           <h3 className="wo-detail__section-title" style={{ marginTop: 0 }}>Código QR de la orden</h3>

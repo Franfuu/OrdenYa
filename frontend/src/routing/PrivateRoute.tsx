@@ -8,8 +8,12 @@ interface PrivateRouteProps {
 }
 
 export const PrivateRoute: React.FC<PrivateRouteProps> = ({ children, allowedRoles }) => {
-  const { user } = useAuth();
-  
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return null;
+  }
+
   if (!user) {
     // Si no está autenticado, redirige al login
     return <Navigate to="/login" replace />;

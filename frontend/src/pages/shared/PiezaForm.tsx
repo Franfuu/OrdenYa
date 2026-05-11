@@ -105,21 +105,21 @@ export const PiezaForm: React.FC = () => {
           <h3 className="wo-form__section-title">Datos de la pieza</h3>
           <div className="wo-form__grid">
             <div className="wo-form__field">
-              <label className="wo-form__field-label wo-form__field-label--required">Código</label>
-              <input type="text" value={data.codigo} disabled={fetching}
-                onChange={e => setData({ ...data, codigo: e.target.value })}
+              <label htmlFor="pf-codigo" className="wo-form__field-label wo-form__field-label--required">Código</label>
+              <input id="pf-codigo" type="text" value={data.codigo} disabled={fetching}
+                onChange={e => setData(prev => ({ ...prev, codigo: e.target.value }))}
                 placeholder="P-XXX" required maxLength={255} />
             </div>
             <div className="wo-form__field">
-              <label className="wo-form__field-label wo-form__field-label--required">Nombre</label>
-              <input type="text" value={data.nombre} disabled={fetching}
-                onChange={e => setData({ ...data, nombre: e.target.value })}
+              <label htmlFor="pf-nombre" className="wo-form__field-label wo-form__field-label--required">Nombre</label>
+              <input id="pf-nombre" type="text" value={data.nombre} disabled={fetching}
+                onChange={e => setData(prev => ({ ...prev, nombre: e.target.value }))}
                 placeholder="Estructura ST-10" required maxLength={255} />
             </div>
             <div className="wo-form__field wo-form__field-full">
-              <label className="wo-form__field-label">Descripción</label>
-              <textarea rows={3} value={data.descripcion} disabled={fetching}
-                onChange={e => setData({ ...data, descripcion: e.target.value })}
+              <label htmlFor="pf-desc" className="wo-form__field-label">Descripción</label>
+              <textarea id="pf-desc" rows={3} value={data.descripcion} disabled={fetching}
+                onChange={e => setData(prev => ({ ...prev, descripcion: e.target.value }))}
                 placeholder="Detalles, dimensiones, material..." />
             </div>
           </div>
@@ -158,7 +158,7 @@ export const PiezaForm: React.FC = () => {
                 <input type="file" accept="image/*" hidden onChange={handleFile} />
               </label>
               {fotoPreview && (
-                <button type="button" onClick={() => { setFotoFile(null); setFotoPreview(""); setData({ ...data, foto: null }); }}
+                <button type="button" onClick={() => { setFotoFile(null); setFotoPreview(""); setData(prev => ({ ...prev, foto: null })); }}
                   className="wo-form__btn-outline" style={{ alignSelf: "flex-start", borderColor: "rgba(239,68,68,0.4)", color: "#ef4444" }}>
                   Quitar foto
                 </button>

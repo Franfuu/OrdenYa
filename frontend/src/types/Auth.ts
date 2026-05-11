@@ -11,14 +11,11 @@ export interface User {
 
 export interface AuthSession {
   user: User;
-  token: string;
+  token?: string;
 }
 
 export interface AuthResponse {
   user: User;
-  token: string;
-  token_type: string;
-  expires_in: number;
 }
 
 export interface LoginCredentials {

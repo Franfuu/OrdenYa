@@ -60,7 +60,7 @@ export const FloatingTimer: React.FC = () => {
       position: "fixed",
       bottom: 20,
       right: 20,
-      zIndex: 9999,
+      zIndex: 50,
       background: "linear-gradient(135deg, #10b981, #059669)",
       color: "white",
       padding: "0.8rem 1.2rem",
@@ -70,7 +70,7 @@ export const FloatingTimer: React.FC = () => {
       alignItems: "center",
       gap: "0.8rem",
       minWidth: 240,
-      animation: "pulse-shadow 2s infinite",
+      animation: "pulse-shadow 0.5s infinite",
     }}>
       <style>{`
         @keyframes pulse-shadow {
@@ -84,7 +84,7 @@ export const FloatingTimer: React.FC = () => {
       `}</style>
       <div style={{
         width: 10, height: 10, borderRadius: "50%",
-        background: "#fff", animation: "blink-dot 1.5s infinite",
+        background: "#fff", animation: "blink-dot 0.5s infinite",
       }} />
       <div style={{ flex: 1, display: "flex", flexDirection: "column", lineHeight: 1.2 }}>
         <span style={{ fontSize: "0.7rem", opacity: 0.85, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em" }}>

@@ -100,7 +100,7 @@ export const TrabajadorWorkOrdersList: React.FC = () => {
         if (sortKey === "fecha_fin")    return o.fecha_fin ?? "9999";
         return "";
       };
-      result = [...result].sort((a, b) => {
+      result = result.toSorted((a, b) => {
         const cmp = getVal(a).localeCompare(getVal(b), "es", { numeric: true });
         return sortDir === "asc" ? cmp : -cmp;
       });
@@ -196,7 +196,11 @@ export const TrabajadorWorkOrdersList: React.FC = () => {
                       <td onClick={e => e.stopPropagation()}>
                         {o.imagen ? (
                           <div className="work-orders-manager__thumbnail-wrap"
-                            onClick={() => setSelectedImage({ src: storageUrl(o.imagen)!, alt: o.nombre_orden })}>
+                            role="button"
+                            tabIndex={0}
+                            onClick={() => setSelectedImage({ src: storageUrl(o.imagen)!, alt: o.nombre_orden })}
+                            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setSelectedImage({ src: storageUrl(o.imagen)!, alt: o.nombre_orden }); }}
+                          >
                             <img src={storageUrl(o.imagen) ?? ''} alt="Miniatura" className="work-orders-manager__thumbnail" />
                           </div>
                         ) : (
@@ -204,7 +208,7 @@ export const TrabajadorWorkOrdersList: React.FC = () => {
                         )}
                       </td>
                       <td><strong>{o.nombre_orden}</strong></td>
-                      <td>{o.modelo || "—"}</td>
+                      <td>{o.modelo || "Sin modelo"}</td>
                       <td>
                         <span className={`work-orders-manager__status-badge ${finalizada ? "work-orders-manager__status-badge--finalizada" : "work-orders-manager__status-badge--taller"}`}>
                           {finalizada ? "Finalizada" : "En curso"}
@@ -213,7 +217,7 @@ export const TrabajadorWorkOrdersList: React.FC = () => {
                       <td>
                         {deadline
                           ? <span className={`deadline-badge ${deadline.cls}`}>{deadline.label}</span>
-                          : <span className="deadline-badge deadline--none">—</span>
+                          : <span className="deadline-badge deadline--none">Sin fecha</span>
                         }
                       </td>
                       <td>
@@ -226,7 +230,7 @@ export const TrabajadorWorkOrdersList: React.FC = () => {
                                 {DEPT_LABELS[slug] ?? slug}
                               </span>
                             );
-                          }) : <span style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>—</span>}
+                          }) : <span style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>N/A</span>}
                         </div>
                       </td>
                     </tr>
@@ -249,7 +253,7 @@ export const TrabajadorWorkOrdersList: React.FC = () => {
                   </button>
                   {pageNumbers.map((p, i) =>
                     p === "..." ? (
-                      <span key={`dots-${i}`} className="pagination__dots">…</span>
+                      <span key={`dots-after-${pageNumbers[i - 1]}`} className="pagination__dots">…</span>
                     ) : (
                       <button
                         key={p}

@@ -27,7 +27,7 @@ export const TrabajadorOrdenes: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [activeOrderId, setActiveOrderId] = useState<number | null>(null);
   const [activeSession, setActiveSession] = useState<WorkSession | null>(null);
-  const [sessionStart, setSessionStart] = useState<Date | null>(null);
+  const sessionStartRef = useRef<Date | null>(null);
   const [elapsed, setElapsed] = useState(0);
   const [actionLoading, setActionLoading] = useState<number | null>(null);
 
@@ -42,7 +42,7 @@ export const TrabajadorOrdenes: React.FC = () => {
   const [piezasError, setPiezasError] = useState("");
   const [notasInput, setNotasInput] = useState("");
 
-  const [showInactivePopup, setShowInactivePopup] = useState(false);
+  const showInactivePopupRef = useRef(false);
   const [showQR, setShowQR] = useState(false);
 
   // Manual entry modal
@@ -128,7 +128,7 @@ export const TrabajadorOrdenes: React.FC = () => {
           if (active) {
             setActiveOrderId(order.id);
             setActiveSession(active);
-            setSessionStart(new Date(active.start_time));
+            sessionStartRef.current = new Date(active.start_time);
             found = true;
             break;
           }
@@ -136,7 +136,7 @@ export const TrabajadorOrdenes: React.FC = () => {
         if (!found && !keepActive) {
           setActiveOrderId(null);
           setActiveSession(null);
-          setSessionStart(null);
+          sessionStartRef.current = null;
         }
       }
     } catch (err: any) {
@@ -161,9 +161,9 @@ export const TrabajadorOrdenes: React.FC = () => {
   useEffect(() => {
     if (inactiveTimerRef.current) clearTimeout(inactiveTimerRef.current);
     if (!loading && activeOrderId === null) {
-      inactiveTimerRef.current = setTimeout(() => setShowInactivePopup(true), 5 * 60 * 1000);
+      inactiveTimerRef.current = setTimeout(() => showInactivePopupRef.current = true, 5 * 60 * 1000);
     } else {
-      setShowInactivePopup(false);
+      showInactivePopupRef.current = false;
     }
     return () => { if (inactiveTimerRef.current) clearTimeout(inactiveTimerRef.current); };
   }, [activeOrderId, loading]);
@@ -171,16 +171,16 @@ export const TrabajadorOrdenes: React.FC = () => {
   // Timer tick
   useEffect(() => {
     if (intervalRef.current) clearInterval(intervalRef.current);
-    if (activeOrderId && sessionStart) {
-      setElapsed(Math.floor((Date.now() - sessionStart.getTime()) / 1000));
+    if (activeOrderId && sessionStartRef.current) {
+      setElapsed(Math.floor((Date.now() - sessionStartRef.current.getTime()) / 1000));
       intervalRef.current = setInterval(() => {
-        setElapsed(Math.floor((Date.now() - sessionStart.getTime()) / 1000));
+        setElapsed(Math.floor((Date.now() - sessionStartRef.current.getTime()) / 1000));
       }, 1000);
     } else {
       setElapsed(0);
     }
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
-  }, [activeOrderId, sessionStart]);
+  }, [activeOrderId]);
 
   // ─── Session Actions ───
 
@@ -216,7 +216,7 @@ export const TrabajadorOrdenes: React.FC = () => {
       });
       setActiveOrderId(orderId);
       setActiveSession(result.session);
-      setSessionStart(new Date(result.session.start_time));
+      sessionStartRef.current = new Date(result.session.start_time);
       setPhaseModalOrderId(null);
       setPhaseModalDeptId(null);
       sileo.success({ title: 'Sesión iniciada' });
@@ -257,7 +257,7 @@ export const TrabajadorOrdenes: React.FC = () => {
     try {
       await workOrderService.pauseSession(orderId, { piezas, notas });
       setActiveOrderId(null);
-      setSessionStart(null);
+      sessionStartRef.current = null;
       setActiveSession(null);
       closeInput();
       sileo.success({ title: 'Sesión pausada' });
@@ -274,7 +274,7 @@ export const TrabajadorOrdenes: React.FC = () => {
     try {
       await workOrderService.stopSession(orderId, { piezas, notas });
       setActiveOrderId(null);
-      setSessionStart(null);
+      sessionStartRef.current = null;
       setActiveSession(null);
       closeInput();
       sileo.success({ title: 'Sesión finalizada', description: `${piezas} piezas registradas` });
@@ -317,7 +317,7 @@ export const TrabajadorOrdenes: React.FC = () => {
       });
       setActiveOrderId(result.session.work_order_id);
       setActiveSession(result.session);
-      setSessionStart(new Date(result.session.start_time));
+      sessionStartRef.current = new Date(result.session.start_time);
       closeInput();
       sileo.success({ title: `Iniciando tarea: ${taskName}` });
       await fetchOrders(true);
@@ -511,7 +511,6 @@ export const TrabajadorOrdenes: React.FC = () => {
                                 value={piezasInput}
                                 onChange={e => { setPiezasInput(e.target.value); setPiezasError(""); }}
                                 className="ordenes-timer__pieces-field"
-                                autoFocus
                               />
                               {piezasError && <span style={{ fontSize: '0.75rem', color: '#ef4444' }}>{piezasError}</span>}
                             </>
@@ -618,7 +617,7 @@ export const TrabajadorOrdenes: React.FC = () => {
         <QRScanner
           onResult={(decoded) => {
             setShowQR(false);
-            const m = decoded.match(/\/ordenes\/(ver|[a-z]+)\/(\d+)/) || decoded.match(/\/(\d+)$/);
+            const m = decoded.match(/\/ordenes\/(?:ver\/)?(\d+)/) || decoded.match(/\/(\d+)$/);
             const id = m ? Number(m[m.length - 1]) : NaN;
             if (id && orders.find(o => o.id === id)) {
               const order = orders.find(o => o.id === id)!;
@@ -634,7 +633,13 @@ export const TrabajadorOrdenes: React.FC = () => {
 
       {/* Phase Selection Modal */}
       {phaseModalOrderId && phaseModalOrder && (
-        <div className="ordenes-timer__modal-overlay" onClick={() => setPhaseModalOrderId(null)}>
+        <div
+          className="ordenes-timer__modal-overlay"
+          role="button"
+          tabIndex={0}
+          onClick={() => setPhaseModalOrderId(null)}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setPhaseModalOrderId(null); }}
+        >
           <div className="ordenes-timer__modal" onClick={e => e.stopPropagation()}>
             <h3>Selecciona fase</h3>
             <p className="ordenes-timer__modal-order">{phaseModalOrder.nombre_orden}</p>
@@ -672,7 +677,13 @@ export const TrabajadorOrdenes: React.FC = () => {
       {/* Ausencia Modal */}
       {/* Manual Session Modal */}
       {showManualModal && (
-        <div className="ordenes-timer__modal-overlay" onClick={() => setShowManualModal(false)}>
+        <div
+          className="ordenes-timer__modal-overlay"
+          role="button"
+          tabIndex={0}
+          onClick={() => setShowManualModal(false)}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setShowManualModal(false); }}
+        >
           <div className="pgs-modal" onClick={e => e.stopPropagation()}>
             <div className="pgs-modal__header">
               <div className="pgs-modal__header-title">
@@ -688,11 +699,11 @@ export const TrabajadorOrdenes: React.FC = () => {
             <div className="pgs-modal__divider" />
             <div className="pgs-modal__body">
               <div className="pgs-modal__field">
-                <label>Orden</label>
-                <select value={manualOrderId ?? ""} onChange={e => { setManualOrderId(Number(e.target.value)); setManualDeptId(null); setManualPhaseId(null); }}>
-                  <option value="">Seleccionar...</option>
+                <label htmlFor="manual-orden">Orden</label>
+                <select id="manual-orden" value={manualOrderId ?? ""} onChange={e => { setManualOrderId(Number(e.target.value)); setManualDeptId(null); setManualPhaseId(null); }}>
+                  <option value="">Seleccionar…</option>
                   {orders.map(o => (
-                    <option key={o.id} value={o.id}>{o.codigo_orden} — {o.nombre_orden}</option>
+                    <option key={o.id} value={o.id}>{o.codigo_orden}: {o.nombre_orden}</option>
                   ))}
                 </select>
               </div>
@@ -703,9 +714,9 @@ export const TrabajadorOrdenes: React.FC = () => {
                 return myD.length > 0 ? (
                   <>
                     <div className="pgs-modal__field">
-                      <label>Departamento</label>
-                      <select value={manualDeptId ?? ""} onChange={e => { setManualDeptId(Number(e.target.value)); setManualPhaseId(null); }}>
-                        <option value="">Seleccionar...</option>
+                      <label htmlFor="manual-dept">Departamento</label>
+                      <select id="manual-dept" value={manualDeptId ?? ""} onChange={e => { setManualDeptId(Number(e.target.value)); setManualPhaseId(null); }}>
+                        <option value="">Seleccionar…</option>
                         {myD.map(d => <option key={d.id} value={d.id}>{d.department?.name}</option>)}
                       </select>
                     </div>
@@ -715,7 +726,7 @@ export const TrabajadorOrdenes: React.FC = () => {
                       const phases = myPhases.length > 0 ? myPhases : (dept ? getActivePhasesForDept(dept) : []);
                       return phases.length > 0 ? (
                         <div className="pgs-modal__field">
-                          <label>Fase</label>
+                          <span className="pgs-modal__field-label">Fase</span>
                           <div className="pgs-modal__phase-list">
                             {phases.map(p => (
                               <button
@@ -737,19 +748,19 @@ export const TrabajadorOrdenes: React.FC = () => {
               })()}
 
               <div className="pgs-modal__field">
-                <label>Fecha</label>
-                <input type="date" value={manualFecha} onChange={e => setManualFecha(e.target.value)} />
+                <label htmlFor="manual-fecha">Fecha</label>
+                <input id="manual-fecha" type="date" value={manualFecha} onChange={e => setManualFecha(e.target.value)} />
               </div>
               <div className="pgs-modal__field">
-                <label>Horario</label>
+                <span className="pgs-modal__field-label">Horario</span>
                 <div className="pgs-modal__time-row">
                   <div className="pgs-modal__time-col">
-                    <span className="pgs-modal__time-label">Inicio</span>
-                    <input type="time" value={manualHoraInicio} onChange={e => setManualHoraInicio(e.target.value)} />
+                    <label htmlFor="manual-hora-inicio" className="pgs-modal__time-label">Inicio</label>
+                    <input id="manual-hora-inicio" type="time" value={manualHoraInicio} onChange={e => setManualHoraInicio(e.target.value)} />
                   </div>
                   <div className="pgs-modal__time-col">
-                    <span className="pgs-modal__time-label">Fin</span>
-                    <input type="time" value={manualHoraFin} onChange={e => setManualHoraFin(e.target.value)} />
+                    <label htmlFor="manual-hora-fin" className="pgs-modal__time-label">Fin</label>
+                    <input id="manual-hora-fin" type="time" value={manualHoraFin} onChange={e => setManualHoraFin(e.target.value)} />
                   </div>
                 </div>
               </div>
@@ -762,8 +773,8 @@ export const TrabajadorOrdenes: React.FC = () => {
                 if (!phase?.phase?.pieces_from) return null;
                 return (
                   <div className="pgs-modal__field">
-                    <label>Piezas</label>
-                    <input type="number" min={0} value={manualPiezas} onChange={e => setManualPiezas(e.target.value)} placeholder="0" />
+                    <label htmlFor="manual-piezas">Piezas</label>
+                    <input id="manual-piezas" type="number" min={0} value={manualPiezas} onChange={e => setManualPiezas(e.target.value)} placeholder="0" />
                   </div>
                 );
               })()}

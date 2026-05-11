@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback } from "react";
+import React, { createContext, use, useState, useCallback } from "react";
 import { createPortal } from "react-dom";
 
 interface ConfirmOptions {
@@ -13,7 +13,7 @@ type ConfirmFn = (opts: ConfirmOptions | string) => Promise<boolean>;
 
 const Ctx = createContext<ConfirmFn>(() => Promise.resolve(false));
 
-export const useConfirm = (): ConfirmFn => useContext(Ctx);
+export const useConfirm = (): ConfirmFn => use(Ctx);
 
 interface State extends ConfirmOptions {
   open: boolean;
@@ -40,9 +40,12 @@ export const ConfirmProvider: React.FC<{ children: React.ReactNode }> = ({ child
       {children}
       {state.open && createPortal(
         <div
+          role="button"
+          tabIndex={0}
           onClick={() => close(false)}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") close(false); }}
           style={{
-            position: "fixed", inset: 0, zIndex: 10001,
+            position: "fixed", inset: 0, zIndex: 50,
             background: "rgba(13, 10, 31, 0.78)",
             backdropFilter: "blur(8px)",
             WebkitBackdropFilter: "blur(8px)",
@@ -97,7 +100,7 @@ export const ConfirmProvider: React.FC<{ children: React.ReactNode }> = ({ child
                 <h3 style={{
                   margin: 0, marginBottom: 6,
                   fontFamily: "var(--font-display)",
-                  fontSize: "1.15rem", fontWeight: 700,
+                  fontSize: "1.15rem", fontWeight: 600,
                   letterSpacing: "-0.02em",
                   color: "var(--text-primary)",
                 }}>
@@ -134,7 +137,6 @@ export const ConfirmProvider: React.FC<{ children: React.ReactNode }> = ({ child
               </button>
               <button
                 onClick={() => close(true)}
-                autoFocus
                 style={{
                   background: state.danger
                     ? "linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)"

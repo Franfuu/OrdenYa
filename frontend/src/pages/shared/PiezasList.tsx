@@ -115,8 +115,8 @@ export const PiezasList: React.FC = () => {
               <tbody>
                 {paginated.map(p => (
                   <tr key={p.id}
-                    className="work-orders-manager__row--clickable"
-                    onClick={() => navigate(`${basePath}/piezas/editar/${p.id}`)}>
+                    className={!isReadOnly ? "work-orders-manager__row--clickable" : ""}
+                    onClick={!isReadOnly ? () => navigate(`${basePath}/piezas/editar/${p.id}`) : undefined}>
                     <td onClick={e => e.stopPropagation()}>
                       <div style={{
                         width: 48, height: 48, borderRadius: 10, overflow: "hidden",
@@ -173,7 +173,7 @@ export const PiezasList: React.FC = () => {
                   <button className="pagination__btn" disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)}>‹ Anterior</button>
                   {pageNumbers.map((p, i) =>
                     p === "..." ? (
-                      <span key={`dots-${i}`} className="pagination__dots">…</span>
+                      <span key={`dots-after-${pageNumbers[i - 1]}`} className="pagination__dots">…</span>
                     ) : (
                       <button key={p}
                         className={`pagination__btn ${currentPage === p ? "pagination__btn--active" : ""}`}

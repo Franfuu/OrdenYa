@@ -39,7 +39,7 @@ export class ErrorBoundary extends Component<Props, State> {
           fontFamily: 'system-ui, sans-serif', background: '#f8fafc', padding: '2rem',
         }}>
           <div style={{ fontSize: '3rem' }}>⚠️</div>
-          <h2 style={{ margin: 0, color: '#1e293b', fontSize: '1.5rem', fontWeight: 700 }}>
+          <h2 style={{ margin: 0, color: '#1e293b', fontSize: '1.5rem', fontWeight: 600 }}>
             Algo salió mal
           </h2>
           <p style={{ color: '#64748b', margin: 0, textAlign: 'center', maxWidth: 400 }}>

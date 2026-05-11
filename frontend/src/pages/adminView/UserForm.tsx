@@ -76,15 +76,15 @@ export const UserForm: React.FC = () => {
           <h3 className="wo-form__section-title">Datos personales</h3>
           <div className="wo-form__grid">
             <div className="wo-form__field">
-              <label className="wo-form__field-label wo-form__field-label--required">Nombre completo</label>
-              <input type="text" value={formData.name} disabled={fetchLoading}
-                onChange={e => setFormData({ ...formData, name: e.target.value })}
+              <label htmlFor="uf-name" className="wo-form__field-label wo-form__field-label--required">Nombre completo</label>
+              <input id="uf-name" type="text" value={formData.name} disabled={fetchLoading}
+                onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
                 placeholder="Ej: Juan Pérez" required />
             </div>
             <div className="wo-form__field">
-              <label className="wo-form__field-label wo-form__field-label--required">Correo electrónico</label>
-              <input type="email" value={formData.email} disabled={fetchLoading}
-                onChange={e => setFormData({ ...formData, email: e.target.value })}
+              <label htmlFor="uf-email" className="wo-form__field-label wo-form__field-label--required">Correo electrónico</label>
+              <input id="uf-email" type="email" value={formData.email} disabled={fetchLoading}
+                onChange={e => setFormData(prev => ({ ...prev, email: e.target.value }))}
                 placeholder="usuario@empresa.com" required />
             </div>
           </div>
@@ -94,27 +94,27 @@ export const UserForm: React.FC = () => {
           <h3 className="wo-form__section-title">Acceso y rol</h3>
           <div className="wo-form__grid">
             <div className="wo-form__field">
-              <label className="wo-form__field-label">
+              <label htmlFor="uf-password" className="wo-form__field-label">
                 Contraseña{isEditing && <span style={{ opacity: 0.6, marginLeft: 6, textTransform: "none", letterSpacing: 0 }}>(opcional)</span>}
               </label>
-              <input type="password" value={formData.password} disabled={fetchLoading}
-                onChange={e => setFormData({ ...formData, password: e.target.value })}
+              <input id="uf-password" type="password" value={formData.password} disabled={fetchLoading}
+                onChange={e => setFormData(prev => ({ ...prev, password: e.target.value }))}
                 placeholder={isEditing ? "••••••••" : "Contraseña segura"}
                 required={!isEditing} autoComplete="new-password" />
             </div>
             <div className="wo-form__field">
-              <label className="wo-form__field-label wo-form__field-label--required">Rol</label>
-              <select value={formData.role} disabled={fetchLoading}
-                onChange={e => setFormData({ ...formData, role: e.target.value as User["role"] })}>
+              <label htmlFor="uf-role" className="wo-form__field-label wo-form__field-label--required">Rol</label>
+              <select id="uf-role" value={formData.role} disabled={fetchLoading}
+                onChange={e => setFormData(prev => ({ ...prev, role: e.target.value as User["role"] }))}>
                 <option value="admin">Administrador</option>
                 <option value="supervisor">Supervisor</option>
                 <option value="trabajador">Trabajador</option>
               </select>
             </div>
             <div className="wo-form__field">
-              <label className="wo-form__field-label">Departamento</label>
-              <select value={formData.departamento} disabled={fetchLoading}
-                onChange={e => setFormData({ ...formData, departamento: e.target.value as Departamento })}>
+              <label htmlFor="uf-dept" className="wo-form__field-label">Departamento</label>
+              <select id="uf-dept" value={formData.departamento} disabled={fetchLoading}
+                onChange={e => setFormData(prev => ({ ...prev, departamento: e.target.value as Departamento }))}>
                 <option value="General">General</option>
                 <option value="Taller">Taller</option>
                 <option value="Instalacion">Instalación</option>

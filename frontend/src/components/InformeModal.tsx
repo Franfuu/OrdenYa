@@ -9,11 +9,14 @@ interface InformeModalProps {
 export const InformeModal: React.FC<InformeModalProps> = ({ onSelect, onClose }) => {
   return (
     <div
+      role="button"
+      tabIndex={0}
       style={{
         position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
+        display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50,
       }}
       onClick={onClose}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onClose(); }}
     >
       <div
         style={{
@@ -23,7 +26,7 @@ export const InformeModal: React.FC<InformeModalProps> = ({ onSelect, onClose })
         }}
         onClick={e => e.stopPropagation()}
       >
-        <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700, color: '#1e293b' }}>
+        <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 600, color: '#1e293b' }}>
           Selecciona el periodo
         </h2>
         <p style={{ margin: 0, fontSize: '0.9rem', color: '#64748b' }}>

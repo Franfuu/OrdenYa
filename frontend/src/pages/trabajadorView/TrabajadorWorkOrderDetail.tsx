@@ -207,21 +207,20 @@ export const TrabajadorWorkOrderDetail: React.FC = () => {
           <h3 className="trabajador-detail__card-title">Campos adicionales</h3>
           <dl className="trabajador-detail__dl">
             {workerVisibleCustomFields
-              .filter(f =>
-                extraData[f.field_key] !== undefined &&
-                extraData[f.field_key] !== null &&
-                extraData[f.field_key] !== ''
-              )
-              .map(field => (
-                <div key={field.field_key} className="trabajador-detail__dl-row">
-                  <dt>{field.label}</dt>
-                  <dd>
-                    {field.type === 'checkbox'
-                      ? (extraData[field.field_key] ? 'Sí' : 'No')
-                      : String(extraData[field.field_key])}
-                  </dd>
-                </div>
-              ))}
+              .flatMap(field => {
+                const val = extraData[field.field_key];
+                if (val === undefined || val === null || val === '') return [];
+                return [(
+                  <div key={field.field_key} className="trabajador-detail__dl-row">
+                    <dt>{field.label}</dt>
+                    <dd>
+                      {field.type === 'checkbox'
+                        ? (val ? 'Sí' : 'No')
+                        : String(val)}
+                    </dd>
+                  </div>
+                )];
+              })}
           </dl>
         </div>
       )}
@@ -253,7 +252,7 @@ export const TrabajadorWorkOrderDetail: React.FC = () => {
                   </div>
                   {/* Active phases */}
                   <div style={{ display: "flex", flexWrap: "wrap", gap: "0.3rem", marginBottom: "0.35rem" }}>
-                    {(dept.phases ?? []).filter(p => p.is_active).map(p => (
+                    {(dept.phases ?? []).flatMap(p => p.is_active ? [(
                       <span key={p.id} style={{
                         padding: "0.15rem 0.5rem", borderRadius: 10, fontSize: "0.73rem",
                         background: p.phase?.pieces_from ? `${color}20` : "var(--surface-elevated)",
@@ -262,7 +261,7 @@ export const TrabajadorWorkOrderDetail: React.FC = () => {
                       }}>
                         {p.phase?.name ?? p.custom_name}
                       </span>
-                    ))}
+                    )] : [])}
                   </div>
                   {/* My piece progress */}
                   {asignadas != null && (
@@ -323,20 +322,22 @@ export const TrabajadorWorkOrderDetail: React.FC = () => {
             <div className="trabajador-detail__piezas-input">
               {activePhaseEntry?.phase?.pieces_from ? (
                 <>
-                  <label className="trabajador-detail__piezas-label">Piezas completadas en esta sesión:</label>
+                  <label htmlFor="td-piezas" className="trabajador-detail__piezas-label">Piezas completadas en esta sesión:</label>
                   <input
+                    id="td-piezas"
                     type="number" min="0"
                     value={piezasInput}
                     onChange={e => { setPiezasInput(e.target.value); setPiezasError(""); }}
                     className="trabajador-detail__piezas-field"
-                    placeholder="0" autoFocus
+                    placeholder="0"
                   />
                   {piezasError && <span className="trabajador-detail__piezas-error">{piezasError}</span>}
                 </>
               ) : (
                 <>
-                  <label className="trabajador-detail__piezas-label">Notas (opcional):</label>
+                  <label htmlFor="td-notas" className="trabajador-detail__piezas-label">Notas (opcional):</label>
                   <textarea
+                    id="td-notas"
                     value={notasInput}
                     onChange={e => setNotasInput(e.target.value)}
                     className="trabajador-detail__piezas-field"
@@ -377,11 +378,11 @@ export const TrabajadorWorkOrderDetail: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {mySessions.map((s, i) => {
+                {mySessions.map((s) => {
                   const start = new Date(s.start_time);
                   const deptLabel = order.departments?.find(d => d.id === s.work_order_department_id)?.department?.name;
                   return (
-                    <tr key={i}>
+                    <tr key={s.id}>
                       <td>{start.toLocaleDateString()}</td>
                       <td>{start.toLocaleTimeString()}</td>
                       <td>{s.end_time ? new Date(s.end_time).toLocaleTimeString() : "—"}</td>
@@ -403,7 +404,13 @@ export const TrabajadorWorkOrderDetail: React.FC = () => {
 
       {/* Start session modal */}
       {startModal && (
-        <div className="ordenes-timer__overlay" onClick={() => !actionLoading && setStartModal(false)}>
+        <div
+          className="ordenes-timer__overlay"
+          role="button"
+          tabIndex={0}
+          onClick={() => !actionLoading && setStartModal(false)}
+          onKeyDown={(e) => { if ((e.key === 'Enter' || e.key === ' ') && !actionLoading) setStartModal(false); }}
+        >
           <div className="ordenes-timer__popup" onClick={e => e.stopPropagation()} style={{ maxWidth: 400 }}>
             <h3 style={{ marginBottom: "1rem", fontSize: "1rem" }}>Iniciar sesión</h3>
 
@@ -471,9 +478,10 @@ export const TrabajadorWorkOrderDetail: React.FC = () => {
                       Selecciona fase en {DEPT_LABELS[selectedDept.department?.slug ?? ""] ?? selectedDept.department?.name}:
                     </p>
                     <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem", marginBottom: "0.75rem" }}>
-                      {(selectedDept.phases ?? []).filter(p => p.is_active).map(p => {
+                      {(selectedDept.phases ?? []).flatMap(p => {
+                        if (!p.is_active) return [];
                         const active = selectedPhase?.id === p.id;
-                        return (
+                        return [(
                           <button key={p.id}
                             onClick={() => setSelectedPhase(p)}
                             style={{
@@ -487,7 +495,7 @@ export const TrabajadorWorkOrderDetail: React.FC = () => {
                             {p.phase?.name ?? p.custom_name ?? "Fase"}
                             {p.phase?.pieces_from && <span style={{ marginLeft: 6, fontSize: "0.7rem", color: "#10b981", fontWeight: 600 }}>● piezas</span>}
                           </button>
-                        );
+                        )];
                       })}
                     </div>
                     <button className="btn-primary" style={{ width: "100%" }}

@@ -1,80 +1,81 @@
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import type { AuthSession, User } from "../types/Auth";
-import { authStorage } from "./authStorage";
+import { createContext, use, useEffect, useMemo, useState } from "react";
+import type { User } from "../types/Auth";
+import { authService } from "../services/authService";
 
 type AuthContextValue = {
     user: User | null;
     isAuthenticated: boolean;
-    login: (session: AuthSession) => void;
+    loading: boolean;
+    login: (user: User) => void;
     logout: () => void;
-    /** Actualiza los datos del usuario en el contexto Y en el localStorage
-     *  sin cerrar sesión ni tocar el token. */
     updateUser: (patch: Partial<User>) => void;
+}
+
+const SESSION_FLAG = 'pgs-session';
+
+function hasSessionFlag(): boolean {
+    return document.cookie.split(';').some(c => c.trim().startsWith(SESSION_FLAG + '='));
+}
+
+function setSessionFlag(): void {
+    document.cookie = `${SESSION_FLAG}=1; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
+}
+
+function clearSessionFlag(): void {
+    document.cookie = `${SESSION_FLAG}=; path=/; max-age=0; SameSite=Lax`;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-    const initial: AuthSession | null = authStorage.get();
+    const [user, setUser] = useState<User | null>(null);
+    const [loading, setLoading] = useState(hasSessionFlag());
 
-    const [user, setUser] = useState<User | null>(initial?.user ?? null)
-    const [token, setToken] = useState<string | null>(initial?.token ?? null)
+    useEffect(() => {
+        if (!hasSessionFlag()) return;
+        fetch('/api/auth/me', { credentials: 'include' })
+            .then(res => res.ok ? res.json() : null)
+            .then((data: { user: User } | null) => {
+                if (!data?.user) clearSessionFlag();
+                setUser(data?.user ?? null);
+            })
+            .catch(() => { clearSessionFlag(); setUser(null); })
+            .finally(() => setLoading(false));
+    }, []);
 
-    function syncFromStorage() {
-        const session: AuthSession | null = authStorage.get();
-        setUser(session?.user ?? null)
-        setToken(session?.token ?? null)
-    }
-
-    function login(session: AuthSession) {
-        authStorage.set(session);
-        setUser(session.user);
-        setToken(session.token);
+    function login(user: User) {
+        setSessionFlag();
+        setUser(user);
     }
 
     function logout() {
-        authStorage.clear();
-        setUser(null);
-        setToken(null);
+        clearSessionFlag();
+        authService.logout().finally(() => {
+            setUser(null);
+            window.location.assign('/login');
+        });
     }
 
-    /**
-     * Aplica un cambio parcial sobre el usuario de la sesión activa.
-     * Persiste los nuevos datos en localStorage y actualiza el estado React
-     * → el Sidebar y cualquier componente que use `useAuth()` se re-renderiza.
-     */
     function updateUser(patch: Partial<User>) {
-        if (!user || !token) return;
-
-        const updatedUser: User = { ...user, ...patch };
-        const updatedSession: AuthSession = { user: updatedUser, token };
-
-        authStorage.set(updatedSession);  // actualiza localStorage
-        setUser(updatedUser);             // dispara re-render global
+        setUser(prev => prev ? { ...prev, ...patch } : null);
     }
 
-    const value = useMemo<AuthContextValue>(() => {
-        return {
-            user,
-            isAuthenticated: Boolean(user),
-            login,
-            logout,
-            updateUser,
-        };
+    const value = useMemo<AuthContextValue>(() => ({
+        user,
+        isAuthenticated: Boolean(user),
+        loading,
+        login,
+        logout,
+        updateUser,
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [user, token])
+    }), [user, loading]);
 
-    useEffect(() => {
-        window.addEventListener("storage", syncFromStorage)
-        return () => window.removeEventListener("storage", syncFromStorage)
-    }, [])
-
-    return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+    return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 // eslint-disable-next-line react-refresh/only-export-components
 export function useAuth() {
-    const contexto = useContext(AuthContext);
-    if (!contexto) throw new Error("useAuth debe usarse dentro de <AuthProvider />");
-    return contexto;
+    const ctx = use(AuthContext);
+    if (!ctx) throw new Error("useAuth debe usarse dentro de <AuthProvider />");
+    return ctx;
 }

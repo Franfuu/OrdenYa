@@ -4,8 +4,7 @@ import type {
 } from '../types/WorkOrder';
 import { http } from './http';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
-const API_URL = API_BASE_URL + '/work-orders';
+const API_URL = '/work-orders';
 
 export const workOrderService = {
     // ─── WORK ORDERS ───

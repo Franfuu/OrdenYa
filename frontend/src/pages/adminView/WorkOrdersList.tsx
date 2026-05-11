@@ -167,7 +167,7 @@ export const WorkOrdersList: React.FC = () => {
     });
 
     if (sortKey) {
-      result = [...result].sort((a, b) => {
+      result = result.toSorted((a, b) => {
         const vals: Record<string, [string, string]> = {
           codigo_orden: [a.codigo_orden ?? "", b.codigo_orden ?? ""],
           nombre_orden: [a.nombre_orden ?? "", b.nombre_orden ?? ""],
@@ -230,11 +230,11 @@ export const WorkOrdersList: React.FC = () => {
             lines.push(["Código", "Nombre", "Cliente", "Pieza (código)", "Pieza (nombre)", "Prioridad", "Unidades", "Fecha inicio", "Fecha fin", "Departamentos", "Trabajadores asignados", "Estado"].map(esc).join(SEP));
 
             // ── Datos ordenados por código ──
-            const sorted = [...workOrders].sort((a, b) => a.codigo_orden.localeCompare(b.codigo_orden, "es", { numeric: true }));
+            const sorted = workOrders.toSorted((a, b) => a.codigo_orden.localeCompare(b.codigo_orden, "es", { numeric: true }));
             sorted.forEach(o => {
-              const depts = (o.departments ?? []).map((d: any) => d.department?.name).filter(Boolean).join(" + ");
+              const depts = (o.departments ?? []).flatMap((d: any) => { const r = d.department?.name; return r ? [r] : []; }).join(" + ");
               const workers = Array.from(new Set(
-                (o.departments ?? []).flatMap((d: any) => (d.workers ?? []).map((w: any) => w.user?.name).filter(Boolean))
+                (o.departments ?? []).flatMap((d: any) => (d.workers ?? []).flatMap((w: any) => { const r = w.user?.name; return r ? [r] : []; }))
               )).join(", ");
               const p = (o as any).pieza;
               lines.push([
@@ -353,22 +353,24 @@ export const WorkOrdersList: React.FC = () => {
             <table className="modern-table work-orders-manager__table--hoverable">
               <thead>
                 <tr>
-                  <th style={{ width: 36 }}>
-                    <input type="checkbox" className="brand-check"
-                      ref={el => {
-                        if (!el) return;
-                        const some = paginated.some(o => selectedIds.has(o.id));
-                        const all = paginated.length > 0 && paginated.every(o => selectedIds.has(o.id));
-                        el.indeterminate = some && !all;
-                      }}
-                      checked={paginated.length > 0 && paginated.every(o => selectedIds.has(o.id))}
-                      onChange={e => {
-                        const next = new Set(selectedIds);
-                        if (e.target.checked) paginated.forEach(o => next.add(o.id));
-                        else paginated.forEach(o => next.delete(o.id));
-                        setSelectedIds(next);
-                      }} />
-                  </th>
+                  {!isReadOnly && (
+                    <th style={{ width: 36 }}>
+                      <input type="checkbox" className="brand-check"
+                        ref={el => {
+                          if (!el) return;
+                          const some = paginated.some(o => selectedIds.has(o.id));
+                          const all = paginated.length > 0 && paginated.every(o => selectedIds.has(o.id));
+                          el.indeterminate = some && !all;
+                        }}
+                        checked={paginated.length > 0 && paginated.every(o => selectedIds.has(o.id))}
+                        onChange={e => {
+                          const next = new Set(selectedIds);
+                          if (e.target.checked) paginated.forEach(o => next.add(o.id));
+                          else paginated.forEach(o => next.delete(o.id));
+                          setSelectedIds(next);
+                        }} />
+                    </th>
+                  )}
                   <th className="sortable-th" onClick={() => handleSort("codigo_orden")}>
                     Código <SortIndicator col="codigo_orden" sortKey={sortKey} sortDir={sortDir} />
                   </th>
@@ -394,17 +396,19 @@ export const WorkOrdersList: React.FC = () => {
                       className="work-orders-manager__row--clickable"
                       onClick={() => navigate(`${basePath}/ordenes/ver/${o.id}`)}
                     >
-                      <td onClick={e => e.stopPropagation()}>
-                        <input type="checkbox" className="brand-check"
-                          checked={selectedIds.has(o.id)}
-                          onChange={() => toggleSelect(o.id)} />
-                      </td>
+                      {!isReadOnly && (
+                        <td onClick={e => e.stopPropagation()}>
+                          <input type="checkbox" className="brand-check"
+                            checked={selectedIds.has(o.id)}
+                            onChange={() => toggleSelect(o.id)} />
+                        </td>
+                      )}
                       <td className="work-orders-manager__code">{o.codigo_orden}</td>
                       <td onClick={e => e.stopPropagation()}>
                         <button
                           type="button"
                           onClick={() => setQrPreview({
-                            value: (o as any).qr_codigo ?? `${window.location.origin}/admin/ordenes/ver/${o.id}`,
+                            value: (o as any).qr_codigo ?? `${window.location.origin}/trabajador/ordenes/${o.id}`,
                             codigo: o.codigo_orden,
                             nombre: o.nombre_orden,
                           })}
@@ -417,11 +421,11 @@ export const WorkOrdersList: React.FC = () => {
                             cursor: "pointer",
                             transition: "transform 0.15s, box-shadow 0.15s",
                           }}
-                          onMouseEnter={e => { e.currentTarget.style.transform = "scale(1.08)"; e.currentTarget.style.boxShadow = "0 6px 18px rgba(60,52,137,0.25)"; }}
-                          onMouseLeave={e => { e.currentTarget.style.transform = "scale(1)"; e.currentTarget.style.boxShadow = "none"; }}
+                          onMouseEnter={e => Object.assign(e.currentTarget.style, { transform: "scale(1.08)", boxShadow: "0 6px 18px rgba(60,52,137,0.25)" })}
+                          onMouseLeave={e => Object.assign(e.currentTarget.style, { transform: "scale(1)", boxShadow: "none" })}
                         >
                           <QRCodeSVG
-                            value={(o as any).qr_codigo ?? `${window.location.origin}/admin/ordenes/ver/${o.id}`}
+                            value={(o as any).qr_codigo ?? `${window.location.origin}/trabajador/ordenes/${o.id}`}
                             size={40} level="M" />
                         </button>
                       </td>
@@ -434,7 +438,7 @@ export const WorkOrdersList: React.FC = () => {
                       <td>
                         {deadline
                           ? <span className={`deadline-badge ${deadline.cls}`}>{deadline.label}</span>
-                          : <span className="deadline-badge deadline--none">—</span>
+                          : <span className="deadline-badge deadline--none">Sin fecha</span>
                         }
                       </td>
                       <td>
@@ -490,7 +494,7 @@ export const WorkOrdersList: React.FC = () => {
                 })}
                 {filteredOrders.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="work-orders-manager__empty">No se encontraron órdenes.</td>
+                    <td colSpan={isReadOnly ? 6 : 7} className="work-orders-manager__empty">No se encontraron órdenes.</td>
                   </tr>
                 )}
               </tbody>
@@ -507,7 +511,7 @@ export const WorkOrdersList: React.FC = () => {
                   </button>
                   {pageNumbers.map((p, i) =>
                     p === "..." ? (
-                      <span key={`dots-${i}`} className="pagination__dots">…</span>
+                      <span key={`dots-after-${pageNumbers[i - 1]}`} className="pagination__dots">…</span>
                     ) : (
                       <button
                         key={p}
@@ -530,9 +534,12 @@ export const WorkOrdersList: React.FC = () => {
 
       {qrPreview && (
         <div
+          role="button"
+          tabIndex={0}
           onClick={() => setQrPreview(null)}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") setQrPreview(null); }}
           style={{
-            position: "fixed", inset: 0, zIndex: 10000,
+            position: "fixed", inset: 0, zIndex: 50,
             background: "rgba(13, 10, 31, 0.78)",
             backdropFilter: "blur(10px)",
             WebkitBackdropFilter: "blur(10px)",
@@ -576,7 +583,7 @@ export const WorkOrdersList: React.FC = () => {
                 <span className="wo-form__title-eyebrow" style={{ marginBottom: 6, display: "inline-block" }}>Código QR</span>
                 <h3 style={{
                   margin: 0, fontFamily: "var(--font-display)",
-                  fontSize: "1.35rem", fontWeight: 700, letterSpacing: "-0.025em",
+                  fontSize: "1.35rem", fontWeight: 600, letterSpacing: "-0.025em",
                   color: "var(--text-primary)",
                 }}>
                   {qrPreview.codigo}
@@ -599,8 +606,8 @@ export const WorkOrdersList: React.FC = () => {
                   flexShrink: 0,
                   transition: "background-color 0.15s, color 0.15s, border-color 0.15s",
                 }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = "#ef4444"; e.currentTarget.style.color = "#ef4444"; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border-color)"; e.currentTarget.style.color = "var(--text-secondary)"; }}
+                onMouseEnter={e => Object.assign(e.currentTarget.style, { borderColor: "#ef4444", color: "#ef4444" })}
+                onMouseLeave={e => Object.assign(e.currentTarget.style, { borderColor: "var(--border-color)", color: "var(--text-secondary)" })}
                 aria-label="Cerrar"
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
@@ -620,8 +627,8 @@ export const WorkOrdersList: React.FC = () => {
                 position: "relative",
               }}>
                 {/* Corner decorations */}
-                {[{ t: 6, l: 6, br: false, bl: false }, { t: 6, r: 6 }, { b: 6, l: 6 }, { b: 6, r: 6 }].map((c, i) => (
-                  <span key={i} style={{
+                {[{ k: "tl", t: 6, l: 6, br: false, bl: false }, { k: "tr", t: 6, r: 6 }, { k: "bl", b: 6, l: 6 }, { k: "br", b: 6, r: 6 }].map((c) => (
+                  <span key={c.k} style={{
                     position: "absolute",
                     top: (c as any).t, left: (c as any).l, right: (c as any).r, bottom: (c as any).b,
                     width: 14, height: 14,

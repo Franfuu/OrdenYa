@@ -39,8 +39,9 @@ export const Profile: React.FC = () => {
   });
   const [loading, setLoading] = useState(false);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+  const handleProfileFieldChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -103,38 +104,41 @@ export const Profile: React.FC = () => {
       <div className="glass-card profile-card">
         <form onSubmit={handleSubmit} className="profile-form">
           <div>
-            <label className="profile-label">Nombre</label>
+            <label htmlFor="profile-name" className="profile-label">Nombre</label>
             <input
+              id="profile-name"
               name="name"
               value={formData.name}
-              onChange={handleChange}
+              onChange={handleProfileFieldChange}
               required
               className="input-base profile-input"
               placeholder="Tu nombre completo"
             />
           </div>
           <div>
-            <label className="profile-label">Correo Electrónico</label>
+            <label htmlFor="profile-email" className="profile-label">Correo Electrónico</label>
             <input
+              id="profile-email"
               type="email"
               name="email"
               value={formData.email}
-              onChange={handleChange}
+              onChange={handleProfileFieldChange}
               required
               className="input-base profile-input"
               placeholder="correo@ejemplo.com"
             />
           </div>
           <div>
-            <label className="profile-label">
+            <label htmlFor="profile-password" className="profile-label">
               Nueva Contraseña{" "}
               <span className="profile-label-hint">(Dejar en blanco para no cambiar)</span>
             </label>
             <input
+              id="profile-password"
               type="password"
               name="password"
               value={formData.password}
-              onChange={handleChange}
+              onChange={handleProfileFieldChange}
               autoComplete="new-password"
               className="input-base profile-input"
               placeholder="Nueva contraseña"

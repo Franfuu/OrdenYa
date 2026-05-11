@@ -17,7 +17,7 @@ return new class extends Migration {
 
         // Auto-populate qr_codigo de órdenes existentes
         foreach (WorkOrder::whereNull('qr_codigo')->get() as $order) {
-            $order->qr_codigo = url("/admin/ordenes/ver/{$order->id}");
+            $order->qr_codigo = url("/trabajador/ordenes/{$order->id}");
             $order->save();
         }
     }

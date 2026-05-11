@@ -58,8 +58,8 @@ export const InstallPWAButton: React.FC = () => {
         boxShadow: "0 6px 16px rgba(239, 159, 39, 0.32)",
         transition: "transform 0.15s, box-shadow 0.15s",
       }}
-      onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-1px)"; e.currentTarget.style.boxShadow = "0 10px 22px rgba(239,159,39,0.45)"; }}
-      onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 6px 16px rgba(239,159,39,0.32)"; }}
+      onMouseEnter={e => Object.assign(e.currentTarget.style, { transform: "translateY(-1px)", boxShadow: "0 10px 22px rgba(239,159,39,0.45)" })}
+      onMouseLeave={e => Object.assign(e.currentTarget.style, { transform: "translateY(0)", boxShadow: "0 6px 16px rgba(239,159,39,0.32)" })}
     >
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4 M7 10l5 5 5-5 M12 15V3"/>

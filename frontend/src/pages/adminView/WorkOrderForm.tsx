@@ -65,7 +65,7 @@ export const WorkOrderForm: React.FC = () => {
 
   useEffect(() => {
     userService.getUsers()
-      .then((list: any) => setWorkers(list.filter((u: any) => u.role === 'trabajador').map((u: any) => ({ id: u.id, name: u.name }))))
+      .then((list: any) => setWorkers(list.flatMap((u: any) => u.role === 'trabajador' ? [{ id: u.id, name: u.name }] : [])))
       .catch(() => setWorkers([]));
     http.get<any[]>("/piezas")
       .then(r => setPiezas(r.data))
@@ -101,7 +101,7 @@ export const WorkOrderForm: React.FC = () => {
             pieza_id: o.pieza_id ?? "",
             nombre_cliente: o.nombre_cliente ?? "",
             observacion: o.observacion ?? "",
-            departments: (o.departments ?? []).map((d: any) => d.department?.slug).filter(Boolean),
+            departments: (o.departments ?? []).flatMap((d: any) => { const s = d.department?.slug; return s ? [s] : []; }),
             department_workers: {},
           });
         })
@@ -200,61 +200,61 @@ export const WorkOrderForm: React.FC = () => {
 
           <div className="wo-form__grid">
             <div className="wo-form__field">
-              <label className="wo-form__field-label wo-form__field-label--required">Código de orden</label>
-              <input type="text" value={formData.codigo_orden}
-                onChange={e => setFormData({ ...formData, codigo_orden: e.target.value })}
+              <label htmlFor="wof-codigo" className="wo-form__field-label wo-form__field-label--required">Código de orden</label>
+              <input id="wof-codigo" type="text" value={formData.codigo_orden}
+                onChange={e => setFormData(prev => ({ ...prev, codigo_orden: e.target.value }))}
                 required maxLength={255} placeholder="V26-0010" />
             </div>
             <div className="wo-form__field">
-              <label className="wo-form__field-label wo-form__field-label--required">Nombre de la orden</label>
-              <input type="text" value={formData.nombre_orden}
-                onChange={e => setFormData({ ...formData, nombre_orden: e.target.value })}
+              <label htmlFor="wof-nombre" className="wo-form__field-label wo-form__field-label--required">Nombre de la orden</label>
+              <input id="wof-nombre" type="text" value={formData.nombre_orden}
+                onChange={e => setFormData(prev => ({ ...prev, nombre_orden: e.target.value }))}
                 required placeholder="Descripción breve" />
             </div>
             <div className="wo-form__field">
-              <label className="wo-form__field-label">Fecha inicio</label>
-              <input type="date" value={formData.fecha_inicio}
-                onChange={e => setFormData({ ...formData, fecha_inicio: e.target.value })} />
+              <label htmlFor="wof-fecha-inicio" className="wo-form__field-label">Fecha inicio</label>
+              <input id="wof-fecha-inicio" type="date" value={formData.fecha_inicio}
+                onChange={e => setFormData(prev => ({ ...prev, fecha_inicio: e.target.value }))} />
             </div>
             <div className="wo-form__field">
-              <label className="wo-form__field-label">Fecha fin</label>
-              <input type="date" value={formData.fecha_fin}
-                onChange={e => setFormData({ ...formData, fecha_fin: e.target.value })} />
+              <label htmlFor="wof-fecha-fin" className="wo-form__field-label">Fecha fin</label>
+              <input id="wof-fecha-fin" type="date" value={formData.fecha_fin}
+                onChange={e => setFormData(prev => ({ ...prev, fecha_fin: e.target.value }))} />
             </div>
             <div className="wo-form__field">
-              <label className="wo-form__field-label">Unidades</label>
-              <input type="number" min={1} value={formData.unidades}
-                onChange={e => setFormData({ ...formData, unidades: Number(e.target.value) })} />
+              <label htmlFor="wof-unidades" className="wo-form__field-label">Unidades</label>
+              <input id="wof-unidades" type="number" min={1} value={formData.unidades}
+                onChange={e => setFormData(prev => ({ ...prev, unidades: Number(e.target.value) }))} />
             </div>
             <div className="wo-form__field">
-              <label className="wo-form__field-label">Prioridad</label>
-              <select value={formData.prioridad}
-                onChange={e => setFormData({ ...formData, prioridad: e.target.value as Prioridad })}>
+              <label htmlFor="wof-prioridad" className="wo-form__field-label">Prioridad</label>
+              <select id="wof-prioridad" value={formData.prioridad}
+                onChange={e => setFormData(prev => ({ ...prev, prioridad: e.target.value as Prioridad }))}>
                 <option value="baja">Baja</option>
                 <option value="media">Media</option>
                 <option value="alta">Alta</option>
               </select>
             </div>
             <div className="wo-form__field">
-              <label className="wo-form__field-label">Cliente</label>
-              <input type="text" value={formData.nombre_cliente}
-                onChange={e => setFormData({ ...formData, nombre_cliente: e.target.value })}
+              <label htmlFor="wof-cliente" className="wo-form__field-label">Cliente</label>
+              <input id="wof-cliente" type="text" value={formData.nombre_cliente}
+                onChange={e => setFormData(prev => ({ ...prev, nombre_cliente: e.target.value }))}
                 placeholder="Nombre del cliente" />
             </div>
             <div className="wo-form__field">
-              <label className="wo-form__field-label">Pieza</label>
-              <select value={formData.pieza_id}
-                onChange={e => setFormData({ ...formData, pieza_id: e.target.value ? Number(e.target.value) : "" })}>
-                <option value="">— Seleccionar pieza —</option>
+              <label htmlFor="wof-pieza" className="wo-form__field-label">Pieza</label>
+              <select id="wof-pieza" value={formData.pieza_id}
+                onChange={e => setFormData(prev => ({ ...prev, pieza_id: e.target.value ? Number(e.target.value) : "" }))}>
+                <option value="">Seleccionar pieza</option>
                 {piezas.map(p => (
                   <option key={p.id} value={p.id}>{p.codigo} · {p.nombre}</option>
                 ))}
               </select>
             </div>
             <div className="wo-form__field wo-form__field-full">
-              <label className="wo-form__field-label">Observaciones</label>
-              <textarea rows={3} value={formData.observacion}
-                onChange={e => setFormData({ ...formData, observacion: e.target.value })}
+              <label htmlFor="wof-observacion" className="wo-form__field-label">Observaciones</label>
+              <textarea id="wof-observacion" rows={3} value={formData.observacion}
+                onChange={e => setFormData(prev => ({ ...prev, observacion: e.target.value }))}
                 placeholder="Notas internas, requisitos especiales, etc." />
             </div>
           </div>

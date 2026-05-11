@@ -19,7 +19,7 @@ export const Login: React.FC = () => {
     setIsLoading(true);
     try {
       const resp = await authService.login(email, password);
-      login({ user: resp.user, token: resp.token });
+      login(resp.user);
       sileo.success({
         title: "¡Bienvenido!",
         description: `Hola ${resp.user.name}, has iniciado sesión.`
