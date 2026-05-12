@@ -2,6 +2,7 @@ import { createContext, use, useEffect, useMemo, useState } from "react";
 import type { User } from "../types/Auth";
 import { authService } from "../services/authService";
 import { disconnectEcho } from "../services/echo";
+import { http } from "../services/http";
 
 type AuthContextValue = {
     user: User | null;
@@ -34,11 +35,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     useEffect(() => {
         if (!hasSessionFlag()) return;
-        fetch('/api/auth/me', { credentials: 'include' })
-            .then(res => res.ok ? res.json() : null)
-            .then((data: { user: User } | null) => {
-                if (!data?.user) clearSessionFlag();
-                setUser(data?.user ?? null);
+        http.get<{ user: User }>('/auth/me')
+            .then(res => {
+                if (!res.data?.user) clearSessionFlag();
+                setUser(res.data?.user ?? null);
             })
             .catch(() => { clearSessionFlag(); setUser(null); })
             .finally(() => setLoading(false));

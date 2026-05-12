@@ -1,5 +1,10 @@
 import React from "react";
-import { Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation, useParams } from "react-router-dom";
+
+const RedirectToVer: React.FC<{ base: string }> = ({ base }) => {
+  const { id } = useParams<{ id: string }>();
+  return <Navigate to={`${base}/ver/${id}`} replace />;
+};
 import { Sidebar } from "../../components/layout/Sidebar";
 import { Topbar } from "../../components/layout/Topbar";
 import { Profile } from "../shared/Profile";
@@ -18,7 +23,8 @@ export const SupervisorDashboard: React.FC = () => {
 
   let title = "Panel de Control";
   if      (p.includes("inicio"))         title = "Panel de Control";
-  else if (p.includes("ordenes/nuevo"))  title = "Crear Orden de Trabajo";
+  else if (p.includes("ordenes/nuevo"))   title = "Crear Orden de Trabajo";
+  else if (p.includes("ordenes/editar")) title = "Editar Orden de Trabajo";
   else if (p.includes("ordenes/ver"))    title = "Detalle de Orden";
   else if (p.includes("ordenes"))        title = "Todas las Órdenes";
   else if (p.includes("piezas/nueva"))   title = "Crear Pieza";
@@ -44,7 +50,9 @@ export const SupervisorDashboard: React.FC = () => {
             <Route path="inicio"             element={<KPIPanel showUsers={false} />} />
             <Route path="ordenes/lista"      element={<WorkOrdersList />} />
             <Route path="ordenes/nuevo"      element={<WorkOrderForm />} />
+            <Route path="ordenes/editar/:id"  element={<WorkOrderForm />} />
             <Route path="ordenes/ver/:id"    element={<WorkOrderDetail />} />
+            <Route path="ordenes/:id"        element={<RedirectToVer base="/supervisor/ordenes" />} />
             <Route path="piezas/lista"       element={<PiezasList />} />
             <Route path="piezas/nueva"       element={<PiezaForm />} />
             <Route path="piezas/nuevo"       element={<Navigate to="/supervisor/piezas/nueva" replace />} />

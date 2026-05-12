@@ -9,7 +9,7 @@ import { StatsGrid } from "../../components/StatsGrid";
 import { FilterBar } from "../../components/FilterBar";
 import type { WorkOrder } from "../../types/WorkOrder";
 import { isOrderFinalizada } from "../../types/WorkOrder";
-import { EditIcon, DeleteIcon, AddIcon, ImageIcon } from "../../components/Icons";
+import { EditIcon, DeleteIcon, AddIcon } from "../../components/Icons";
 import { http } from "../../services/http";
 import { QRCodeSVG } from "qrcode.react";
 import { useConfirm } from "../../components/ConfirmDialog";
@@ -31,7 +31,7 @@ const DEPT_LABELS: Record<string, string> = {
 const PAGE_SIZE = 15;
 type SortKey = "codigo_orden" | "nombre_orden" | "fecha_fin" | null;
 
-function getDeadlineBadge(fechaFin: string | null | undefined) {
+function getDeadlineBadge(fechaFin: string | null | undefined, finalizada = false) {
   if (!fechaFin) return null;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -39,6 +39,7 @@ function getDeadlineBadge(fechaFin: string | null | undefined) {
   deadline.setHours(0, 0, 0, 0);
   const diffDays = Math.ceil((deadline.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
   const dateStr = deadline.toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit", year: "2-digit" });
+  if (finalizada) return { label: dateStr, cls: "deadline--ok" };
   if (diffDays < 0)  return { label: dateStr, cls: "deadline--overdue" };
   if (diffDays <= 7) return { label: dateStr, cls: "deadline--soon" };
   return { label: dateStr, cls: "deadline--ok" };
@@ -1003,7 +1004,7 @@ export const WorkOrdersList: React.FC = () => {
               <tbody>
                 {paginated.map(o => {
                   const finalizada = isOrderFinalizada(o);
-                  const deadline = getDeadlineBadge(o.fecha_fin);
+                  const deadline = getDeadlineBadge(o.fecha_fin, finalizada);
                   return (
                     <tr
                       key={o.id}

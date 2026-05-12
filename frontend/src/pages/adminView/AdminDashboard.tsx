@@ -1,5 +1,10 @@
 import React from "react";
-import { Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation, useParams } from "react-router-dom";
+
+const RedirectToVer: React.FC<{ base: string }> = ({ base }) => {
+  const { id } = useParams<{ id: string }>();
+  return <Navigate to={`${base}/ver/${id}`} replace />;
+};
 import { UsersList } from "./UsersList";
 import { UserForm } from "./UserForm";
 import { UserDetail } from "./UserDetail";
@@ -32,7 +37,6 @@ export const AdminDashboard: React.FC = () => {
   else if (p.includes("piezas/nueva"))       title = "Crear Pieza";
   else if (p.includes("piezas/editar"))      title = "Editar Pieza";
   else if (p.includes("piezas"))             title = "Catálogo de Piezas";
-  else if (p.includes("usuarios/nuevo"))     title = "Crear Usuario";
   else if (p.includes("perfil"))             title = "Mi Perfil";
 
   const adminLinks = [
@@ -65,6 +69,7 @@ export const AdminDashboard: React.FC = () => {
             <Route path="ordenes/nuevo"         element={<WorkOrderForm />} />
             <Route path="ordenes/editar/:id"    element={<WorkOrderForm />} />
             <Route path="ordenes/ver/:id"       element={<WorkOrderDetail />} />
+            <Route path="ordenes/:id"           element={<RedirectToVer base="/admin/ordenes" />} />
 
             <Route path="piezas/lista"          element={<PiezasList />} />
             <Route path="piezas/nueva"          element={<PiezaForm />} />

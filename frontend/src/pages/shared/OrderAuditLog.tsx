@@ -14,16 +14,19 @@ const ACTION_META: Record<string, { color: string; label: string }> = {
   updated:    { color: "#3b82f6", label: "Modificada" },
   deleted:    { color: "#ef4444", label: "Eliminada" },
   duplicated: { color: "#8b5cf6", label: "Duplicada" },
+  finalized:       { color: "#f59e0b", label: "Cerrada" },
+  "auto-finalized": { color: "#f59e0b", label: "AutoCerrada" },
+  reopened:        { color: "#6366f1", label: "Reabierta" },
 };
 
-export const OrderAuditLog: React.FC<{ orderId: number }> = ({ orderId }) => {
+export const OrderAuditLog: React.FC<{ orderId: number; refreshKey?: number }> = ({ orderId, refreshKey }) => {
   const [entries, setEntries] = useState<AuditEntry[]>([]);
 
   useEffect(() => {
     http.get<AuditEntry[]>(`/work-orders/${orderId}/audit`)
       .then(r => setEntries(r.data))
       .catch(() => {});
-  }, [orderId]);
+  }, [orderId, refreshKey]);
 
   if (entries.length === 0) return null;
 

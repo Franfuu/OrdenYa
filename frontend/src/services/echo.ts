@@ -30,7 +30,7 @@ export function getEcho(): Echo<'reverb'> {
         enabledTransports: ['ws', 'wss'],
         authorizer: (channel: { name: string }) => ({
             authorize: (socketId: string, cb: (err: Error | null, data?: any) => void) => {
-                http.post(`${apiBase}/broadcasting/auth`, {
+                http.post('/broadcasting/auth', {
                     socket_id: socketId,
                     channel_name: channel.name,
                 })

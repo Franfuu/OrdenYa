@@ -17,6 +17,7 @@ Route::post('/auth/login', [AuthController::class, 'login'])->middleware('thrott
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/auth/me', [AuthController::class, 'me']);
+    Route::get('/sessions/active', [WorkOrderController::class, 'activeSession']);
     Route::post('/auth/logout', [AuthController::class, 'logout']);
     Route::put('/auth/profile', [UserController::class, 'updateProfile']);
     Route::get('/auth/profile', [UserController::class, 'myProfile']);
@@ -57,6 +58,18 @@ Route::middleware('auth:sanctum')->group(function () {
     // Finalizar departamento — admin + supervisor (cierre operativo de fases)
     Route::middleware('role:admin,supervisor')->group(function () {
         Route::post('work-orders/{workOrder}/finalize-department', [WorkOrderController::class, 'finalizeDepartment']);
+        Route::post('work-orders/{workOrder}/finalize', [WorkOrderController::class, 'finalizeOrder']);
+        Route::post('work-orders/{workOrder}/reopen', [WorkOrderController::class, 'reopenOrder']);
+        Route::post('work-orders/{workOrder}/departments/{dept}/workers/{worker}/approve', [WorkOrderController::class, 'approveWorker']);
+
+        // Gestión dinámica post-creación
+        Route::post('work-orders/{workOrder}/add-department', [WorkOrderController::class, 'addDepartment']);
+        Route::post('work-orders/{workOrder}/add-workers', [WorkOrderController::class, 'addWorkersToDepartment']);
+        Route::post('work-orders/{workOrder}/remove-worker', [WorkOrderController::class, 'removeWorkerFromDepartment']);
+        Route::post('work-orders/{workOrder}/assign-pieces', [WorkOrderController::class, 'assignPieces']);
+        Route::delete('work-orders/{workOrder}/departments/{dept}', [WorkOrderController::class, 'removeDepartment']);
+        Route::put('work-orders/{workOrder}/departments/{dept}/phases', [WorkOrderController::class, 'updateDeptPhases']);
+        Route::put('work-orders/{workOrder}/departments/{dept}/workers/{worker}/piezas', [WorkOrderController::class, 'setWorkerPiezas']);
 
         // Crear / editar / eliminar / duplicar / lote / foto de órdenes
         // (supervisor: restringido a su departamento — validado en el controlador)

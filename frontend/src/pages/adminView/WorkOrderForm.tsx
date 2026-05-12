@@ -124,13 +124,18 @@ export const WorkOrderForm: React.FC = () => {
             nombre_cliente: o.nombre_cliente ?? "",
             observacion: o.observacion ?? "",
             departments: (o.departments ?? []).flatMap((d: any) => { const s = d.department?.slug; return s ? [s] : []; }),
-            department_workers: {},
+            department_workers: Object.fromEntries(
+              (o.departments ?? []).flatMap((d: any) => {
+                const s = d.department?.slug;
+                if (!s) return [];
+                return [[s, (d.workers ?? []).map((w: any) => w.user_id).filter(Boolean)]];
+              })
+            ),
           });
         })
         .finally(() => setFetchLoading(false));
-    } else {
-      setFetchLoading(false);
     }
+    // Note: !isEditing case sets fetchLoading=false inside getAll().then/catch above
   }, [id, isEditing]);
 
   const toggleDept = (slug: DepartmentSlug) => {
@@ -160,6 +165,10 @@ export const WorkOrderForm: React.FC = () => {
     }
     if (formData.departments.length === 0) {
       sileo.error({ title: "Selecciona al menos un departamento" });
+      return;
+    }
+    if (formData.fecha_fin && formData.fecha_inicio && formData.fecha_fin < formData.fecha_inicio) {
+      sileo.error({ title: "La fecha de fin no puede ser anterior a la de inicio" });
       return;
     }
 

@@ -9,7 +9,7 @@ import type { WorkOrder, WorkSession, WorkOrderDepartment, WorkOrderPhase } from
 import { isGenericOrder } from "../../types/WorkOrder";
 import { sileo } from "sileo";
 import { showHttpError } from "../../utils/errorHelper";
-import { LockIcon, MedicalIcon, BroomIcon, SearchIcon, SettingsIcon, ClockIcon, PlayIcon, PauseIcon, StopIcon } from "../../components/Icons";
+import { LockIcon, BroomIcon, SearchIcon, SettingsIcon, ClockIcon, PlayIcon, PauseIcon, StopIcon } from "../../components/Icons";
 import { QRScanner } from "../../components/QRScanner";
 import { VoiceInput } from "../../components/VoiceInput";
 import { useWorkOrdersChannel } from "../../hooks/useWorkOrdersChannel";
@@ -196,19 +196,20 @@ export const TrabajadorOrdenes: React.FC = () => {
     return () => window.removeEventListener('keydown', onKey);
   }, [showManualModal, showQR, phaseModalOrderId, inputOrderId]);
 
-  // Timer tick
+  // Timer tick — capture startTime in closure to avoid stale ref crash
   useEffect(() => {
     if (intervalRef.current) clearInterval(intervalRef.current);
-    if (activeOrderId && sessionStartRef.current) {
-      setElapsed(Math.floor((Date.now() - sessionStartRef.current.getTime()) / 1000));
+    const startTime = sessionStartRef.current;
+    if (activeOrderId && startTime) {
+      setElapsed(Math.floor((Date.now() - startTime.getTime()) / 1000));
       intervalRef.current = setInterval(() => {
-        setElapsed(Math.floor((Date.now() - sessionStartRef.current.getTime()) / 1000));
+        setElapsed(Math.floor((Date.now() - startTime.getTime()) / 1000));
       }, 1000);
     } else {
       setElapsed(0);
     }
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
-  }, [activeOrderId]);
+  }, [activeOrderId, activeSession]);
 
   // ─── Session Actions ───
 
@@ -689,7 +690,7 @@ export const TrabajadorOrdenes: React.FC = () => {
                     >
                       {phase.phase?.name ?? phase.custom_name}
                       {phaseNeedsPiezas(phase) && (
-                        <span className="ordenes-timer__modal-pieces-tag">cuenta piezas</span>
+                        <span className="ordenes-timer__modal-pieces-tag">Cuenta Piezas</span>
                       )}
                     </button>
                   ))}

@@ -23,6 +23,7 @@ class WorkOrder extends Model
         'observacion',
         'imagen',
         'qr_codigo',
+        'cerrada_at',
     ];
 
     protected function casts(): array
@@ -31,6 +32,7 @@ class WorkOrder extends Model
             'fecha_inicio' => 'date',
             'fecha_fin'    => 'date',
             'unidades'     => 'integer',
+            'cerrada_at'   => 'datetime',
         ];
     }
 
@@ -51,9 +53,7 @@ class WorkOrder extends Model
 
     public function isFinalizada(): bool
     {
-        $activeDepts = $this->departments;
-        if ($activeDepts->isEmpty()) return false;
-        return $activeDepts->every(fn ($d) => $d->isFinalizado());
+        return $this->cerrada_at !== null;
     }
 
     public function getTiempoTotalSegundosAttribute(): int

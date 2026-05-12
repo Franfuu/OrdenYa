@@ -9,6 +9,7 @@
     },
     "jsx": "preserve",
     "strict": true,
+    "ignoreDeprecations": "6.0",
     "types": ["vite/client"]
   },
   "include": ["src"]

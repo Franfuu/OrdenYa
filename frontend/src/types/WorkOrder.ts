@@ -92,27 +92,33 @@ export type WorkOrderTipo = 'HL' | 'TE' | 'DK';
 
 export interface WorkOrder {
   id: number;
-  tipo: WorkOrderTipo | null;
   codigo_orden: string;
   nombre_orden: string;
   fecha_inicio: string | null;
   fecha_fin: string | null;
   unidades: number | null;
-  festividad: string | null;
-  numero_pedido: number | null;
-  codigo_cliente: number | null;
   nombre_cliente: string | null;
-  modelo: string | null;
-  numero_op: string | null;
   observacion: string | null;
   imagen: string | null;
-  extra_data: Record<string, string | number | boolean | null> | null;
+  pieza_id: number | null;
+  prioridad: 'baja' | 'media' | 'alta' | null;
+  qr_codigo: string | null;
+  cerrada_at: string | null;
   created_at: string;
   updated_at: string;
 
+  // Optional fields (present in some configurations)
+  tipo?: WorkOrderTipo | null;
+  festividad?: string | null;
+  numero_pedido?: number | null;
+  codigo_cliente?: number | null;
+  numero_op?: string | null;
+  modelo?: string | null;
+  extra_data?: Record<string, string | number | boolean | null> | null;
   hl_referencia_id?: number | null;
 
   // Relations
+  pieza?: { id: number; codigo: string; nombre: string; foto: string | null } | null;
   departments?: WorkOrderDepartment[];
   work_sessions?: WorkSession[];
   hl_referencia?: import('./HlReferencia').HlReferencia | null;
@@ -150,8 +156,7 @@ export type WorkOrderUpdateDTO = Partial<Omit<WorkOrderCreateDTO, 'departments' 
 // ─── HELPERS ───
 
 export function isOrderFinalizada(order: WorkOrder): boolean {
-  if (!order.departments || order.departments.length === 0) return false;
-  return order.departments.every(d => d.finalizado_at !== null);
+  return order.cerrada_at !== null && order.cerrada_at !== undefined;
 }
 
 export function isGenericOrder(order: WorkOrder): boolean {

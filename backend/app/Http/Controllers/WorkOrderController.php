@@ -12,6 +12,7 @@ use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use App\Models\AuditLog;
@@ -32,6 +33,29 @@ class WorkOrderController extends Controller
     }
 
     // ─── WORK ORDERS ───
+
+    public function activeSession(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $session = WorkSession::where('user_id', $user->id)
+            ->whereNull('end_time')
+            ->with('workOrder')
+            ->latest('start_time')
+            ->first();
+
+        if (! $session) {
+            return response()->json(['session' => null]);
+        }
+
+        return response()->json([
+            'session' => [
+                'id'         => $session->id,
+                'start_time' => $session->start_time,
+                'order_name' => $session->workOrder?->nombre_orden,
+                'order_code' => $session->workOrder?->codigo_orden,
+            ],
+        ]);
+    }
 
     public function index(Request $request): JsonResponse
     {
@@ -365,7 +389,10 @@ class WorkOrderController extends Controller
                     if ($existingBySlug->has($slug)) {
                         $deptRow = $existingBySlug->get($slug);
                         $workerIds = $validated['department_workers'][$slug] ?? [];
-                        $deptRow->workers()->whereNotIn('user_id', $workerIds)->delete();
+                        // Preservar workers con piezas asignadas o aprobados
+                        $deptRow->workers()->whereNotIn('user_id', $workerIds)
+                            ->where(fn($q) => $q->where('piezas_asignadas', 0)->whereNull('approved_at'))
+                            ->delete();
                         foreach ($workerIds as $uid) {
                             $deptRow->workers()->firstOrCreate(['user_id' => $uid], ['piezas_asignadas' => 0]);
                         }
@@ -624,6 +651,17 @@ class WorkOrderController extends Controller
             return response()->json(['message' => 'Ya estaba finalizado.'], 422);
         }
 
+        // All workers with assigned pieces must be approved
+        $workOrderDept->load('workers');
+        $unapproved = $workOrderDept->workers->filter(
+            fn ($w) => ($w->piezas_asignadas > 0 || $w->piezas_completadas > 0) && ! $w->approved_at
+        );
+        if ($unapproved->isNotEmpty()) {
+            return response()->json([
+                'message' => 'No se puede cerrar el departamento. Hay trabajadores con piezas pendientes de aprobar.',
+            ], 422);
+        }
+
         DB::transaction(function () use ($workOrderDept) {
             $workOrderDept->update(['finalizado_at' => now()]);
             WorkSession::where('work_order_department_id', $workOrderDept->id)
@@ -635,6 +673,92 @@ class WorkOrderController extends Controller
         $this->broadcastChange('finalized', $workOrder->id);
 
         return response()->json(['message' => 'Departamento finalizado', 'work_order' => $workOrder]);
+    }
+
+    public function finalizeOrder(Request $request, WorkOrder $workOrder): JsonResponse
+    {
+        $user = $request->user();
+        if ($err = $this->ensureSupervisorCanManage($workOrder, $user)) return $err;
+
+        $workOrder->load('departments.workers');
+
+        // All workers with pieces must be approved
+        $unapproved = collect();
+        foreach ($workOrder->departments as $dept) {
+            foreach ($dept->workers as $w) {
+                if (($w->piezas_asignadas > 0 || $w->piezas_completadas > 0) && ! $w->approved_at) {
+                    $unapproved->push($w);
+                }
+            }
+        }
+        if ($unapproved->isNotEmpty()) {
+            return response()->json([
+                'message' => 'No se puede cerrar la orden. Hay trabajadores con piezas pendientes de aprobar.',
+            ], 422);
+        }
+
+        DB::transaction(function () use ($workOrder) {
+            $workOrder->update(['cerrada_at' => now()]);
+            foreach ($workOrder->departments as $dept) {
+                if (! $dept->finalizado_at) {
+                    $dept->update(['finalizado_at' => now()]);
+                }
+                WorkSession::where('work_order_department_id', $dept->id)
+                    ->whereNull('end_time')
+                    ->update(['end_time' => now()]);
+            }
+        });
+
+        AuditLog::log($user->id, 'finalized', 'WorkOrder', $workOrder->id,
+            "Orden {$workOrder->codigo_orden} cerrada manualmente.");
+
+        $workOrder->load($this->orderWith());
+        $this->broadcastChange('finalized', $workOrder->id);
+
+        return response()->json(['message' => 'Orden cerrada', 'work_order' => $workOrder]);
+    }
+
+    public function reopenOrder(Request $request, WorkOrder $workOrder): JsonResponse
+    {
+        $user = $request->user();
+        if ($err = $this->ensureSupervisorCanManage($workOrder, $user)) return $err;
+
+        DB::transaction(function () use ($workOrder) {
+            $workOrder->update(['cerrada_at' => null]);
+            foreach ($workOrder->departments as $dept) {
+                $dept->update(['finalizado_at' => null]);
+            }
+        });
+
+        AuditLog::log($user->id, 'reopened', 'WorkOrder', $workOrder->id,
+            "Orden {$workOrder->codigo_orden} reabierta.");
+
+        $workOrder->load($this->orderWith());
+        $this->broadcastChange('reopened', $workOrder->id);
+
+        return response()->json(['message' => 'Orden reabierta', 'work_order' => $workOrder]);
+    }
+
+    public function approveWorker(Request $request, WorkOrder $workOrder, WorkOrderDepartment $dept, WorkOrderDepartmentWorker $worker): JsonResponse
+    {
+        if ($dept->work_order_id !== $workOrder->id || $worker->work_order_department_id !== $dept->id) {
+            return response()->json(['message' => 'Recurso no encontrado.'], 404);
+        }
+        if ($worker->approved_at) {
+            return response()->json(['message' => 'Ya aprobado.'], 422);
+        }
+        $worker->update(['approved_at' => now(), 'approved_by' => $request->user()->id]);
+
+        // Mark related pending notification as acted
+        Notification::where('type', 'worker_completion_approval')
+            ->whereNull('acted_at')
+            ->where('data->work_order_department_worker_id', $worker->id)
+            ->update(['acted_at' => now(), 'read_at' => now()]);
+
+        $workOrder->load(['departments.workers.user', 'departments.department']);
+        $this->broadcastChange('approved', $workOrder->id, ['worker_id' => $worker->id]);
+
+        return response()->json(['message' => 'Trabajador aprobado', 'work_order' => $workOrder]);
     }
 
     public function assignPieces(Request $request, WorkOrder $workOrder): JsonResponse

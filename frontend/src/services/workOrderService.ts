@@ -60,6 +60,14 @@ export const workOrderService = {
         }).then(r => r.data);
     },
 
+    finalizeOrder(orderId: number): Promise<{ message: string; work_order: WorkOrder }> {
+        return http.post<{ message: string; work_order: WorkOrder }>(`${API_URL}/${orderId}/finalize`).then(r => r.data);
+    },
+
+    reopenOrder(orderId: number): Promise<{ message: string; work_order: WorkOrder }> {
+        return http.post<{ message: string; work_order: WorkOrder }>(`${API_URL}/${orderId}/reopen`).then(r => r.data);
+    },
+
     removeDepartment(orderId: number, deptId: number): Promise<{ message: string; work_order: WorkOrder }> {
         return http.delete<{ message: string; work_order: WorkOrder }>(
             `${API_URL}/${orderId}/departments/${deptId}`
@@ -91,6 +99,10 @@ export const workOrderService = {
         return http.post<{ message: string; work_order: WorkOrder }>(`${API_URL}/${orderId}/finalize-department`, {
             department_id: departmentId,
         }).then(r => r.data);
+    },
+
+    approveWorker(orderId: number, deptId: number, workerId: number): Promise<{ message: string; work_order: WorkOrder }> {
+        return http.post<{ message: string; work_order: WorkOrder }>(`${API_URL}/${orderId}/departments/${deptId}/workers/${workerId}/approve`).then(r => r.data);
     },
 
     assignPieces(orderId: number, data: {

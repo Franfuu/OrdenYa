@@ -26,7 +26,6 @@ export const PrivateRoute: React.FC<PrivateRouteProps> = ({ children, allowedRol
   if (lowerAllowedRoles && !lowerAllowedRoles.includes(userRole)) {
      if (userRole === 'admin') return <Navigate to="/admin" replace />;
      if (userRole === 'supervisor') return <Navigate to="/supervisor" replace />;
-     if (userRole === 'jefe') return <Navigate to="/jefe" replace />;
      return <Navigate to="/trabajador" replace />;
   }
 

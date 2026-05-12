@@ -21,12 +21,13 @@ const DEPT_LABELS: Record<string, string> = {
 const PAGE_SIZE = 15;
 type SortKey = "codigo_orden" | "nombre_orden" | "fecha_fin" | null;
 
-function getDeadlineBadge(fechaFin: string | null | undefined) {
+function getDeadlineBadge(fechaFin: string | null | undefined, finalizada = false) {
   if (!fechaFin) return null;
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const deadline = new Date(fechaFin); deadline.setHours(0, 0, 0, 0);
   const diffDays = Math.ceil((deadline.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
   const dateStr = deadline.toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit", year: "2-digit" });
+  if (finalizada) return { label: dateStr, cls: "deadline--ok" };
   if (diffDays < 0)  return { label: dateStr, cls: "deadline--overdue" };
   if (diffDays <= 7) return { label: dateStr, cls: "deadline--soon" };
   return { label: dateStr, cls: "deadline--ok" };
@@ -160,7 +161,7 @@ export const TrabajadorWorkOrdersList: React.FC = () => {
           <FilterBar
             searchTerm={searchTerm}
             onSearchChange={setSearchTerm}
-            searchPlaceholder="Buscar por código, nombre, cliente, modelo..."
+            searchPlaceholder="Buscar por código, nombre, cliente..."
             filterValue={filterStatus}
             onFilterChange={setFilterStatus}
             filterOptions={[
@@ -181,7 +182,6 @@ export const TrabajadorWorkOrdersList: React.FC = () => {
                   <th className="sortable-th" onClick={() => handleSort("nombre_orden")}>
                     Nombre <SortIndicator col="nombre_orden" sortKey={sortKey} sortDir={sortDir} />
                   </th>
-                  <th>Modelo</th>
                   <th>Estado</th>
                   <th className="sortable-th" onClick={() => handleSort("fecha_fin")}>
                     Fecha límite <SortIndicator col="fecha_fin" sortKey={sortKey} sortDir={sortDir} />
@@ -192,7 +192,7 @@ export const TrabajadorWorkOrdersList: React.FC = () => {
               <tbody>
                 {paginated.map(o => {
                   const finalizada = isOrderFinalizada(o);
-                  const deadline = getDeadlineBadge(o.fecha_fin);
+                  const deadline = getDeadlineBadge(o.fecha_fin, finalizada);
                   const myDepts = (o.departments ?? []).filter(d =>
                     deptMatches(d.department?.slug ?? "") &&
                     (d.workers ?? []).some(w => w.user_id === user?.id && !w.approved_at)
@@ -219,7 +219,6 @@ export const TrabajadorWorkOrdersList: React.FC = () => {
                         </div>
                       </td>
                       <td><strong>{o.nombre_orden}</strong></td>
-                      <td>{o.modelo || "Sin modelo"}</td>
                       <td>
                         <span className={`work-orders-manager__status-badge ${finalizada ? "work-orders-manager__status-badge--finalizada" : "work-orders-manager__status-badge--taller"}`}>
                           {finalizada ? "Finalizada" : "En curso"}
@@ -248,7 +247,7 @@ export const TrabajadorWorkOrdersList: React.FC = () => {
                   );
                 })}
                 {filteredOrders.length === 0 && (
-                  <tr><td colSpan={7} className="work-orders-manager__empty">No se encontraron órdenes asignadas.</td></tr>
+                  <tr><td colSpan={6} className="work-orders-manager__empty">No se encontraron órdenes asignadas.</td></tr>
                 )}
               </tbody>
             </table>

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useAuth } from "../auth/authContext";
-import { workOrderService } from "../services/workOrderService";
+import { http } from "../services/http";
 
 interface ActiveInfo {
   orderName: string;
@@ -20,17 +20,14 @@ export const FloatingTimer: React.FC = () => {
 
     const check = async () => {
       try {
-        const list = await workOrderService.getAll();
+        const res = await http.get<{ session: { id: number; start_time: string; order_name: string; order_code: string } | null }>('/sessions/active');
         if (cancelled) return;
-        const uid = (user as any).id;
-        for (const o of list as any[]) {
-          const s = (o.work_sessions ?? []).find((s: any) => s.user_id === uid && !s.end_time);
-          if (s) {
-            setActive({ orderName: o.nombre_orden, orderCode: o.codigo_orden, startTime: new Date(s.start_time) });
-            return;
-          }
+        const s = res.data.session;
+        if (s) {
+          setActive({ orderName: s.order_name, orderCode: s.order_code, startTime: new Date(s.start_time) });
+        } else {
+          setActive(null);
         }
-        setActive(null);
       } catch { /* silent */ }
     };
 

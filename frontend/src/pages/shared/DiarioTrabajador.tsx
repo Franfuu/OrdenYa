@@ -70,6 +70,8 @@ export const DiarioTrabajador: React.FC<Props> = ({ userId, userName }) => {
     }, 0);
   }, [sessions]);
 
+  const hasActiveSession = useMemo(() => sessions.some(s => !s.end_time), [sessions]);
+
   const openEdit = (session: WorkSession) => {
     const start = new Date(session.start_time);
     const end = session.end_time ? new Date(session.end_time) : null;
@@ -129,7 +131,10 @@ export const DiarioTrabajador: React.FC<Props> = ({ userId, userName }) => {
       <div className="diario__summary-section" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
            <span className="diario__section-label">Resumen del día</span>
-           <div style={{ fontSize: '1.2rem', fontWeight: 700, marginTop: '0.1rem' }}>Total horas: <span style={{ color: 'var(--primary)' }}>{formatDuration(totalSeconds)}</span></div>
+           <div style={{ fontSize: '1.2rem', fontWeight: 700, marginTop: '0.1rem' }}>
+             Total horas: <span style={{ color: 'var(--primary)' }}>{formatDuration(totalSeconds)}</span>
+             {hasActiveSession && <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginLeft: '0.4rem', fontWeight: 400 }}>(sesión activa no incluida)</span>}
+           </div>
         </div>
         <div style={{ textAlign: 'right' }}>
            <span className="diario__section-label">Fichajes</span>

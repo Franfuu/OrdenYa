@@ -204,74 +204,6 @@ export const DeleteIcon: React.FC<IconProps> = ({
   </svg>
 );
 
-/** Ver Detalles / Ojo */
-export const ViewIcon: React.FC<IconProps> = ({
-  size = 16,
-  color = "currentColor",
-  className = "",
-}) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke={color}
-    strokeWidth="1.8"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className={className}
-  >
-    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-    <circle cx="12" cy="12" r="3" />
-  </svg>
-);
-
-/** Exportar / Descargar */
-export const ExportIcon: React.FC<IconProps> = ({
-  size = 16,
-  color = "currentColor",
-  className = "",
-}) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke={color}
-    strokeWidth="1.8"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className={className}
-  >
-    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-    <polyline points="7 10 12 15 17 10" />
-    <line x1="12" y1="15" x2="12" y2="3" />
-  </svg>
-);
-
-/** Registrar Informe / Portapapeles con check */
-export const ReportIcon: React.FC<IconProps> = ({
-  size = 16,
-  color = "currentColor",
-  className = "",
-}) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke={color}
-    strokeWidth="1.8"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className={className}
-  >
-    <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
-    <rect x="9" y="3" width="6" height="4" rx="1" />
-    <path d="M9 14l2 2 4-4" />
-  </svg>
-);
-
 /** Cerrar Sesión / Puerta con flecha */
 export const LogoutIcon: React.FC<IconProps> = ({
   size = 18,
@@ -595,28 +527,6 @@ export const AlertIcon: React.FC<IconProps> = ({
   </svg>
 );
 
-/** Iluminación / Bombilla (para PGS Iluminación) */
-export const LightbulbIcon: React.FC<IconProps> = ({
-  size = 20,
-  color = "currentColor",
-  className = "",
-}) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke={color}
-    strokeWidth="1.8"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className={className}
-  >
-    <line x1="9" y1="18" x2="15" y2="18" />
-    <line x1="10" y1="22" x2="14" y2="22" />
-    <path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14" />
-  </svg>
-);
 /** Ajustes / Engranaje */
 export const SettingsIcon: React.FC<IconProps> = ({
   size = 20,
@@ -680,30 +590,6 @@ export const SearchIcon: React.FC<IconProps> = ({
   >
     <circle cx="11" cy="11" r="8" />
     <line x1="21" y1="21" x2="16.65" y2="16.65" />
-  </svg>
-);
-
-/** Transferir / Flechas dobles horizontales */
-export const TransferIcon: React.FC<IconProps> = ({
-  size = 16,
-  color = "currentColor",
-  className = "",
-}) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke={color}
-    strokeWidth="1.8"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className={className}
-  >
-    <polyline points="17 4 21 8 17 12" />
-    <line x1="3" y1="8" x2="21" y2="8" />
-    <polyline points="7 20 3 16 7 12" />
-    <line x1="21" y1="16" x2="3" y2="16" />
   </svg>
 );
 

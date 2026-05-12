@@ -42,7 +42,7 @@ export const PiezasList: React.FC = () => {
       .catch(() => sileo.error({ title: "Error al cargar piezas" }))
       .finally(() => setLoading(false));
   };
-  useEffect(load, []);
+  useEffect(() => { load(); }, []);
   useEffect(() => { setCurrentPage(1); }, [searchTerm]);
 
   const handleDelete = async (e: React.MouseEvent, id: number, codigo: string) => {
