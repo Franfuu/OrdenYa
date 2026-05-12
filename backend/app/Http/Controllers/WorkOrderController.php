@@ -81,6 +81,27 @@ class WorkOrderController extends Controller
         return response()->json($workOrder);
     }
 
+    /**
+     * Devuelve null si el supervisor (o admin) puede gestionar la orden;
+     * o un JsonResponse 403 si no.
+     */
+    private function ensureSupervisorCanManage(WorkOrder $workOrder, $user): ?JsonResponse
+    {
+        if (! $user || $user->role !== 'supervisor') return null;
+        $allowedSlugs = $this->allowedDeptSlugsForUser($user);
+        if ($allowedSlugs === null) return null; // supervisor general → sin restricción
+        if (empty($allowedSlugs)) {
+            return response()->json(['message' => 'Tu cuenta de supervisor no tiene un departamento asignado.'], 403);
+        }
+        $matches = $workOrder->departments()
+            ->whereHas('department', fn ($q) => $q->whereIn('slug', $allowedSlugs))
+            ->exists();
+        if (! $matches) {
+            return response()->json(['message' => 'No puedes gestionar órdenes de otros departamentos.'], 403);
+        }
+        return null;
+    }
+
     private function allowedDeptSlugsForUser($user): ?array
     {
         if (! $user || $user->role !== 'supervisor') return null; // null = sin restricción
@@ -168,6 +189,8 @@ class WorkOrderController extends Controller
 
     public function duplicate(WorkOrder $workOrder): JsonResponse
     {
+        if ($err = $this->ensureSupervisorCanManage($workOrder, request()->user())) return $err;
+
         return DB::transaction(function () use ($workOrder) {
             $base = $workOrder->codigo_orden;
             $i = 1;
@@ -212,7 +235,28 @@ class WorkOrderController extends Controller
             'prioridad' => ['required_if:action,set_prioridad', Rule::in(['baja', 'media', 'alta'])],
         ]);
 
-        $userId = $request->user()->id;
+        $user = $request->user();
+        $userId = $user->id;
+
+        // Supervisor: filtrar IDs a los que tiene acceso (su departamento)
+        $allowedSlugs = $this->allowedDeptSlugsForUser($user);
+        if ($user->role === 'supervisor' && $allowedSlugs !== null) {
+            if (empty($allowedSlugs)) {
+                return response()->json(['message' => 'Tu cuenta de supervisor no tiene un departamento asignado.'], 403);
+            }
+            $allowedIds = WorkOrder::whereIn('id', $validated['ids'])
+                ->whereHas('departments.department', fn ($q) => $q->whereIn('slug', $allowedSlugs))
+                ->pluck('id')->all();
+            $denied = array_diff($validated['ids'], $allowedIds);
+            if (! empty($denied)) {
+                return response()->json([
+                    'message' => 'No puedes gestionar órdenes de otros departamentos.',
+                    'denied_ids' => array_values($denied),
+                ], 403);
+            }
+            $validated['ids'] = $allowedIds;
+        }
+
         $orders = WorkOrder::whereIn('id', $validated['ids'])->get();
         $count = 0;
 
@@ -269,6 +313,8 @@ class WorkOrderController extends Controller
 
     public function update(Request $request, WorkOrder $workOrder): JsonResponse
     {
+        if ($err = $this->ensureSupervisorCanManage($workOrder, $request->user())) return $err;
+
         $validated = $request->validate([
             'tipo' => ['sometimes', 'nullable', Rule::in(['HL', 'TE'])],
             'codigo_orden' => ['sometimes', 'required', 'string', 'max:255', Rule::unique('work_orders')->ignore($workOrder->id)],
@@ -339,6 +385,8 @@ class WorkOrderController extends Controller
 
     public function uploadImage(Request $request, WorkOrder $workOrder): JsonResponse
     {
+        if ($err = $this->ensureSupervisorCanManage($workOrder, $request->user())) return $err;
+
         $request->validate(['imagen' => 'required|file|image|max:10240']);
 
         if ($workOrder->imagen && str_contains($workOrder->imagen, '/storage/work-orders/')) {
@@ -354,6 +402,8 @@ class WorkOrderController extends Controller
 
     public function destroy(WorkOrder $workOrder): JsonResponse
     {
+        if ($err = $this->ensureSupervisorCanManage($workOrder, request()->user())) return $err;
+
         $activeSessions = WorkSession::where('work_order_id', $workOrder->id)
             ->whereNull('end_time')
             ->count();

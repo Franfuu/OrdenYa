@@ -58,7 +58,7 @@ export const WorkOrdersList: React.FC = () => {
   const basePath = role === "supervisor" ? "/supervisor" : "/admin";
   // Supervisor: puede crear órdenes pero NO editar/eliminar/duplicar existentes
   const isReadOnly = role !== "admin" && role !== "supervisor";
-  const canModifyExisting = role === "admin";
+  const canModifyExisting = role === "admin" || role === "supervisor";
   const confirm = useConfirm();
 
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);

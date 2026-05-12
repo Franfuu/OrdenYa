@@ -58,8 +58,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('role:admin,supervisor')->group(function () {
         Route::post('work-orders/{workOrder}/finalize-department', [WorkOrderController::class, 'finalizeDepartment']);
 
-        // Crear órdenes (supervisor: restringido a su departamento — validado en controlador)
+        // Crear / editar / eliminar / duplicar / lote / foto de órdenes
+        // (supervisor: restringido a su departamento — validado en el controlador)
         Route::post('work-orders', [WorkOrderController::class, 'store']);
+        Route::put('work-orders/{workOrder}', [WorkOrderController::class, 'update']);
+        Route::delete('work-orders/{workOrder}', [WorkOrderController::class, 'destroy']);
+        Route::post('work-orders/{workOrder}/duplicate', [WorkOrderController::class, 'duplicate']);
+        Route::post('work-orders/bulk', [WorkOrderController::class, 'bulkAction']);
+        Route::post('work-orders/{workOrder}/upload-image', [WorkOrderController::class, 'uploadImage']);
 
         // Catálogo de piezas (CRUD) — supervisor + admin
         Route::post('piezas', [PiezaController::class, 'store']);
@@ -67,16 +73,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('piezas/{pieza}', [PiezaController::class, 'destroy']);
     });
 
-    // ── ADMIN ONLY: gestión completa de órdenes y usuarios ──
+    // ── ADMIN ONLY: gestión de usuarios ──
     Route::middleware('role:admin')->group(function () {
-        // Órdenes (editar, eliminar, duplicar, lote, foto)
-        Route::put('work-orders/{workOrder}', [WorkOrderController::class, 'update']);
-        Route::delete('work-orders/{workOrder}', [WorkOrderController::class, 'destroy']);
-        Route::post('work-orders/{workOrder}/duplicate', [WorkOrderController::class, 'duplicate']);
-        Route::post('work-orders/bulk', [WorkOrderController::class, 'bulkAction']);
-        Route::post('work-orders/{workOrder}/upload-image', [WorkOrderController::class, 'uploadImage']);
-
-        // Usuarios (CRUD)
         Route::post('users', [UserController::class, 'store']);
         Route::put('users/{user}', [UserController::class, 'update']);
         Route::delete('users/{user}', [UserController::class, 'destroy']);

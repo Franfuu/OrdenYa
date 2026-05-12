@@ -32,7 +32,7 @@ export const WorkOrderDetail: React.FC = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
-  const isReadOnly = (user as any)?.role === "supervisor";
+  const isReadOnly = (user as any)?.role !== "admin" && (user as any)?.role !== "supervisor";
   const confirm = useConfirm();
   const basePath = (user as any)?.role === "supervisor" ? "/supervisor" : "/admin";
 
