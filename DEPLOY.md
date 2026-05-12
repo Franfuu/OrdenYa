@@ -1,63 +1,82 @@
-# Despliegue: Railway (backend) + Vercel (frontend)
+# Despliegue: PlanetScale (DB) + Render (backend) + Render (frontend)
+
+## Arquitectura
+
+```
+[Browser] → [Render Static Site: frontend] → [Render Web Service: backend Laravel] → [PlanetScale: MySQL]
+```
 
 ## Cambios ya aplicados al código
 
-| Archivo | Cambio | Por qué |
-|---|---|---|
-| `backend/app/Http/Controllers/AuthController.php` | Cookie `secure` y `samesite` dinámicos según entorno | En producción cross-domain (Railway+Vercel) la cookie necesita `secure=true` + `samesite=none` |
-| `backend/config/cors.php` | `allowed_origins` lee `FRONTEND_URL` del `.env` | No hardcodear URL de Vercel en código |
-| `backend/Procfile` | Comando de arranque para Railway | Railway necesita saber cómo lanzar Laravel |
-| `backend/nixpacks.toml` | Extensiones PHP + build + start | Railway usa nixpacks para compilar el proyecto |
+| Archivo                                             | Cambio                                                     | Por qué                                                                           |
+| --------------------------------------------------- | ---------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| `backend/app/Http/Controllers/AuthController.php` | Cookie `secure` y `samesite` dinámicos según entorno | En producción cross-domain la cookie necesita `secure=true` + `samesite=none` |
+| `backend/config/cors.php`                         | `allowed_origins` lee `FRONTEND_URL` del `.env`      | No hardcodear URL del frontend en código                                          |
+| `backend/Procfile`                                | Comando de arranque                                        | Render usa Procfile para lanzar Laravel                                            |
+| `backend/nixpacks.toml`                           | Extensiones PHP + build + start                            | Render usa nixpacks para compilar                                                  |
 
 ---
 
 ## Requisitos previos
 
-- Repo subido a GitHub con estos cambios
-- Cuenta en [railway.app](https://railway.app)
-- Cuenta en [vercel.com](https://vercel.com)
+- Repo subido a GitHub
+- Cuenta en [planetscale.com](https://planetscale.com)
+- 
+- Cuenta en [render.com](https://render.com)
 
 ---
 
-## PASO 1 — Subir repo a GitHub
+## PASO 1 — Base de datos en PlanetScale
 
-```bash
-git add .
-git commit -m "prepare production deploy"
-git push origin main
-```
+1. planetscale.com → **New database**
+   - Name: `tfg-daw`
+   - Region: `AWS eu-west-1` (Irlanda, más cercana)
+2. Espera que termine de crear (~1 min)
+3. **Connect** → **Connect with**: Laravel
+4. Copia las credenciales que aparecen:
+   ```
+   DB_HOST=...
+   DB_USERNAME=...
+   DB_PASSWORD=...
+   DB_DATABASE=...
+   ```
+5. En PlanetScale → Settings → **Allow web console connections**: ON
+
+> PlanetScale usa SSL por defecto. Laravel lo maneja automático con el driver mysql.
 
 ---
 
-## PASO 2 — Backend en Railway
+## PASO 2 — Backend Laravel en Render
 
-### 2.1 Crear proyecto
+### 2.1 Crear Web Service
 
-1. Railway → **New Project** → **Deploy from GitHub**
-2. Selecciona el repo
-3. **Root Directory**: `backend`
+1. render.com → **New** → **Web Service**
+2. Conecta tu repo de GitHub
+3. Configura:
+   - **Name**: `tfg-backend`
+   - **Root Directory**: `backend`
+   - **Runtime**: `Node` → cambia a **Native Runtime** o deja que nixpacks lo detecte
+   - **Build Command**: (dejar vacío — nixpacks.toml lo gestiona)
+   - **Start Command**: (dejar vacío — Procfile lo gestiona)
+   - **Plan**: Free
 
-### 2.2 Añadir base de datos MySQL
+### 2.2 Variables de entorno
 
-1. En el proyecto → **Add Service** → **Database** → **MySQL**
-2. Railway crea la BD y expone variables automáticamente
-
-### 2.3 Variables de entorno del backend
-
-En el servicio backend → **Variables**, añadir:
+En el servicio → **Environment** → añadir:
 
 ```env
 APP_ENV=production
 APP_DEBUG=false
-APP_URL=https://TU-BACKEND.up.railway.app
-APP_KEY=                          # ver paso 2.4
+APP_URL=https://tfg-backend.onrender.com
+APP_KEY=                          # ver paso 2.3
 
 DB_CONNECTION=mysql
-DB_HOST=${{MySQL.MYSQL_HOST}}     # referencia Railway automática
-DB_PORT=${{MySQL.MYSQL_PORT}}
-DB_DATABASE=${{MySQL.MYSQL_DATABASE}}
-DB_USERNAME=${{MySQL.MYSQL_USER}}
-DB_PASSWORD=${{MySQL.MYSQL_PASSWORD}}
+DB_HOST=TU_HOST_PLANETSCALE
+DB_PORT=3306
+DB_DATABASE=TU_DATABASE
+DB_USERNAME=TU_USERNAME
+DB_PASSWORD=TU_PASSWORD
+MYSQL_ATTR_SSL_CA=/etc/ssl/certs/ca-certificates.crt
 
 SESSION_DRIVER=database
 SESSION_LIFETIME=120
@@ -65,80 +84,84 @@ SESSION_SECURE_COOKIE=true
 SESSION_SAME_SITE=none
 
 FILESYSTEM_DISK=local
-FRONTEND_URL=https://TU-FRONTEND.vercel.app   # actualizar tras paso 4
+FRONTEND_URL=https://tfg-frontend.onrender.com   # actualizar tras paso 3
 ```
 
-### 2.4 Generar APP_KEY
+### 2.3 Generar APP_KEY
 
 Ejecutar localmente:
+
 ```bash
 cd backend
 php artisan key:generate --show
 ```
-Copiar el resultado (`base64:...`) como valor de `APP_KEY`.
 
-### 2.5 Verificar deploy
+Copiar resultado (`base64:...`) como valor de `APP_KEY`.
 
-Railway despliega automático al hacer push. Comprobar logs. URL pública: `https://TU-BACKEND.up.railway.app`
+### 2.4 Deploy
 
-Probar: `https://TU-BACKEND.up.railway.app/up` → debe devolver 200.
+- Render despliega automático. Ver logs.
+- URL pública: `https://tfg-backend.onrender.com`
+- Verificar: `https://tfg-backend.onrender.com/up` → debe devolver 200
 
 ---
 
-## PASO 3 — Frontend en Vercel
+## PASO 3 — Frontend en Render
 
-1. Vercel → **New Project** → importa repo de GitHub
-2. Configura:
+1. render.com → **New** → **Static Site**
+2. Conecta el mismo repo de GitHub
+3. Configura:
+   - **Name**: `tfg-frontend`
    - **Root Directory**: `frontend`
-   - **Framework Preset**: Vite
-   - **Build Command**: `npm run build`
-   - **Output Directory**: `dist`
-3. **Environment Variables**:
-
-```env
-VITE_API_URL=https://TU-BACKEND.up.railway.app/api
-```
-
-4. **Deploy** → Vercel da URL: `https://TU-FRONTEND.vercel.app`
+   - **Build Command**: `npm install && npm run build`
+   - **Publish Directory**: `dist`
+4. **Environment Variables**:
+   ```env
+   VITE_API_URL=https://tfg-backend.onrender.com/api
+   ```
+5. **Deploy** → URL: `https://tfg-frontend.onrender.com`
 
 ---
 
-## PASO 4 — Actualizar FRONTEND_URL en Railway
+## PASO 4 — Actualizar FRONTEND_URL en backend
 
-Vuelve a Railway → Variables del backend → actualiza:
+Render → servicio backend → **Environment** → actualiza:
+
 ```env
-FRONTEND_URL=https://TU-FRONTEND.vercel.app
+FRONTEND_URL=https://tfg-frontend.onrender.com
 ```
 
-Railway redespliega automático.
+Render redespliega automático.
 
 ---
 
-## PASO 5 — Verificar que todo funciona
+## PASO 5 — Verificar
 
-- [ ] `https://TU-BACKEND.up.railway.app/up` devuelve 200
-- [ ] `https://TU-FRONTEND.vercel.app` carga la app
-- [ ] Login funciona (la cookie llega cross-domain)
+- [ ] `https://tfg-backend.onrender.com/up` devuelve 200
+- [ ] `https://tfg-frontend.onrender.com` carga la app
+- [ ] Login funciona (cookie cross-domain)
+- [ ] Migraciones corridas (ver logs Render)
 - [ ] Imágenes/archivos subidos se sirven correctamente
-- [ ] Migraciones corridas (ver logs Railway)
 
 ---
 
 ## Problemas comunes
 
-| Problema | Causa | Fix |
-|---|---|---|
-| CORS error en consola | `FRONTEND_URL` no configurado o mal | Verificar variable en Railway |
-| Login no guarda sesión (401 en /auth/me) | Cookie cross-domain bloqueada | Verificar `SESSION_SECURE_COOKIE=true` + `SESSION_SAME_SITE=none` en Railway |
-| 500 en Railway | `.env` mal / extensión PHP faltante | Ver logs en Railway dashboard |
-| Build falla en Vercel | Falta `VITE_API_URL` | Añadir variable de entorno en Vercel |
-| Imágenes no cargan | `storage:link` no ejecutado | El Procfile ya lo hace; verificar logs de arranque |
-| `php artisan config:cache` falla en build | Variable de entorno referenciada en config no existe aún | Añadir todas las vars antes del primer deploy |
+| Problema                                  | Causa                                   | Fix                                                                   |
+| ----------------------------------------- | --------------------------------------- | --------------------------------------------------------------------- |
+| CORS error en consola                     | `FRONTEND_URL` no configurado o mal   | Verificar variable en Render backend                                  |
+| Login no guarda sesión (401 en /auth/me) | Cookie cross-domain bloqueada           | Verificar `SESSION_SECURE_COOKIE=true` + `SESSION_SAME_SITE=none` |
+| 500 en Render                             | `.env` mal / extensión PHP faltante  | Ver logs en Render dashboard                                          |
+| Build falla frontend                      | Falta `VITE_API_URL`                  | Añadir variable en Render Static Site                                |
+| Imágenes no cargan                       | `storage:link` no ejecutado           | Procfile ya lo hace; verificar logs de arranque                       |
+| Error SSL PlanetScale                     | Falta `MYSQL_ATTR_SSL_CA`             | Añadir la variable de entorno SSL                                    |
+| App tarda en responder                    | Plan free duerme tras 15min inactividad | Normal en plan free; plan paid elimina el sleep                       |
 
 ---
 
-## Notas de arquitectura
+## Notas
 
-- **Cookie auth**: en producción usa `secure=true` + `samesite=none` (necesario cross-domain HTTPS). En local sigue con `secure=false` + `samesite=lax`. Controlado en `AuthController.php` por `app()->environment('production')`.
-- **CORS**: `cors.php` lee `FRONTEND_URL` del entorno — sin hardcodear URLs en código.
-- **Storage**: archivos subidos van a `storage/app/public`. En Railway el filesystem es efímero — para producción real considerar S3/Cloudflare R2. Para el TFG es suficiente.
+- **Cookie auth**: producción usa `secure=true` + `samesite=none` (necesario cross-domain HTTPS). Local usa `secure=false` + `samesite=lax`. Controlado en `AuthController.php` por `app()->environment('production')`.
+- **CORS**: `cors.php` lee `FRONTEND_URL` del entorno.
+- **Storage**: archivos en `storage/app/public`. Render filesystem es efímero — se pierden al redesplegar. Para el TFG es suficiente; para producción real usar S3/Cloudflare R2.
+- **Plan free Render**: backend duerme tras 15min sin tráfico → primera petición tarda ~30s en despertar.
