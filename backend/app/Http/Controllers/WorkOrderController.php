@@ -793,6 +793,12 @@ class WorkOrderController extends Controller
             \Log::warning('Fallo notificando supervisor de cuota completa: ' . $e->getMessage());
         }
 
+        try {
+            $this->maybeFinalizeWorkOrderOnCompletion($workOrder);
+        } catch (\Throwable $e) {
+            \Log::warning('Fallo auto-finalizando orden: ' . $e->getMessage());
+        }
+
         $workOrder->load($this->orderWith());
         $this->broadcastChange('session', $workOrder->id, ['type' => 'stop', 'user_id' => $target->id]);
 
@@ -867,6 +873,119 @@ class WorkOrderController extends Controller
                     'piezas' => $cuota,
                 ],
             ]);
+        }
+    }
+
+    /**
+     * Si todos los trabajadores de todos los departamentos han completado su cuota,
+     * marca la orden como finalizada (cerrando departamentos abiertos y sesiones
+     * sin cerrar) y notifica a los supervisores correspondientes.
+     *
+     * Idempotente: no dispara dos veces gracias a la detección de notificación previa
+     * y al chequeo de departamentos ya finalizados.
+     */
+    private function maybeFinalizeWorkOrderOnCompletion(WorkOrder $workOrder): void
+    {
+        // Recarga con relaciones frescas
+        $workOrder = $workOrder->fresh(['departments.workers', 'departments.department']);
+        if (! $workOrder) return;
+
+        $depts = $workOrder->departments;
+        if ($depts->isEmpty()) return; // orden sin depts → nada que finalizar
+
+        // Recorre depts; cada uno debe estar finalizado O tener todos sus workers con cuota cumplida
+        $hasAnyQuota = false;
+        foreach ($depts as $dept) {
+            if ($dept->finalizado_at) continue; // ya cerrado, ok
+
+            $workers = $dept->workers;
+            if ($workers->isEmpty()) return; // dept sin trabajadores → no se considera completable
+            foreach ($workers as $w) {
+                $cuota = (int) $w->piezas_asignadas;
+                if ($cuota <= 0) continue; // sin cuota = no cuenta
+                $hasAnyQuota = true;
+                $hechas = (int) $w->piezas_completadas;
+                if ($hechas < $cuota) return; // falta trabajo → abortar
+            }
+        }
+        if (! $hasAnyQuota) return; // ningún worker tenía cuota → no consideramos "completada"
+
+        // Idempotencia: si ya notificamos antes esta orden, no repetir
+        $alreadyNotified = Notification::where('type', 'work_order_completed')
+            ->where('data->work_order_id', $workOrder->id)
+            ->exists();
+
+        // Cerrar transaccionalmente depts pendientes + sesiones huérfanas
+        DB::transaction(function () use ($workOrder) {
+            foreach ($workOrder->departments as $dept) {
+                if (! $dept->finalizado_at) {
+                    $dept->update(['finalizado_at' => now()]);
+                }
+                WorkSession::where('work_order_department_id', $dept->id)
+                    ->whereNull('end_time')
+                    ->update(['end_time' => now()]);
+            }
+        });
+
+        AuditLog::log(request()->user()?->id, 'auto-finalized', 'WorkOrder', $workOrder->id,
+            "Orden {$workOrder->codigo_orden} finalizada automáticamente al completarse la cuota.");
+
+        // Si ya estaba notificada antes (caso raro: orden re-finalizada manualmente), salir
+        if ($alreadyNotified) return;
+
+        // Recopilar supervisores destinatarios: por cada dept de la orden, los supervisores
+        // cuyo departamento global encaje. Usar set para evitar duplicar destinatarios.
+        $supervisorIds = [];
+        foreach ($workOrder->departments as $dept) {
+            $slug = $dept->department?->slug;
+            $matchValues = match ($slug) {
+                'taller'      => ['Taller'],
+                'instalacion' => ['Instalacion', 'Instalación'],
+                default       => [],
+            };
+            if (empty($matchValues)) continue;
+            $ids = User::where('role', 'supervisor')
+                ->whereIn('departamento', $matchValues)
+                ->pluck('id')->all();
+            foreach ($ids as $id) $supervisorIds[$id] = true;
+        }
+        // Fallback: si no hay supervisores por dept (config rara), notificar a todos los supervisores
+        if (empty($supervisorIds)) {
+            $supervisorIds = array_fill_keys(
+                User::where('role', 'supervisor')->pluck('id')->all(),
+                true
+            );
+        }
+        if (empty($supervisorIds)) return;
+
+        $deptNames = $workOrder->departments
+            ->map(fn ($d) => $d->department?->name)
+            ->filter()->implode(' + ');
+        $totalCuota = (int) $workOrder->departments
+            ->flatMap->workers
+            ->sum('piezas_asignadas');
+
+        foreach (array_keys($supervisorIds) as $uid) {
+            Notification::create([
+                'user_id' => (int) $uid,
+                'type' => 'work_order_completed',
+                'title' => "Orden completada: {$workOrder->codigo_orden}",
+                'body'  => "{$workOrder->nombre_orden}" . ($deptNames ? " · {$deptNames}" : '') . " · {$totalCuota} piezas",
+                'link'  => "/supervisor/ordenes/ver/{$workOrder->id}",
+                'data'  => [
+                    'work_order_id' => $workOrder->id,
+                    'codigo_orden' => $workOrder->codigo_orden,
+                    'nombre_orden' => $workOrder->nombre_orden,
+                    'departamentos' => $deptNames,
+                    'piezas_totales' => $totalCuota,
+                ],
+            ]);
+        }
+
+        try {
+            broadcast(new WorkOrdersChanged('finalized', $workOrder->id, ['auto' => true]));
+        } catch (\Throwable $e) {
+            \Log::warning('Broadcast auto-finalizada falló: ' . $e->getMessage());
         }
     }
 
@@ -954,6 +1073,17 @@ class WorkOrderController extends Controller
             $this->recordPieces($session, $user->id, $piezasReq);
         }
 
+        try {
+            $this->maybeNotifySupervisorOnCompletion($workOrder->id, $session->work_order_department_id, $user->id);
+        } catch (\Throwable $e) {
+            \Log::warning('Fallo notificando supervisor de cuota completa (manual): ' . $e->getMessage());
+        }
+        try {
+            $this->maybeFinalizeWorkOrderOnCompletion($workOrder);
+        } catch (\Throwable $e) {
+            \Log::warning('Fallo auto-finalizando orden (manual): ' . $e->getMessage());
+        }
+
         return response()->json(['message' => 'Sesión registrada manualmente.', 'session' => $session], 201);
     }
 
@@ -1017,6 +1147,18 @@ class WorkOrderController extends Controller
                 ->where('user_id', $session->user_id)
                 ->first();
 
+        }
+
+        if ($delta > 0) {
+            try {
+                $workOrder = WorkOrder::find($session->work_order_id);
+                if ($workOrder) {
+                    $this->maybeNotifySupervisorOnCompletion($workOrder->id, $session->work_order_department_id, $session->user_id);
+                    $this->maybeFinalizeWorkOrderOnCompletion($workOrder);
+                }
+            } catch (\Throwable $e) {
+                \Log::warning('Fallo auto-finalizando orden (updateSession): ' . $e->getMessage());
+            }
         }
 
         return response()->json(['message' => 'Sesión actualizada.', 'session' => $session]);

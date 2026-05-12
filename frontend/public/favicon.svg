@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 360">
+  <defs>
+    <clipPath id="circleClip">
+      <circle cx="180" cy="180" r="155"/>
+    </clipPath>
+    <radialGradient id="bg" cx="50%" cy="42%" r="60%">
+      <stop offset="0%" stop-color="#534AB7"/>
+      <stop offset="100%" stop-color="#26215C"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Círculo principal centrado -->
+  <circle cx="180" cy="180" r="155" fill="url(#bg)"/>
+
+  <!-- Arco decorativo interior -->
+  <circle cx="180" cy="180" r="138" fill="none" stroke="#534AB7" stroke-width="2" opacity="0.55"/>
+
+  <!-- Sombras decorativas internas -->
+  <g clip-path="url(#circleClip)">
+    <circle cx="300" cy="62" r="90" fill="#534AB7" opacity="0.18"/>
+    <circle cx="50" cy="292" r="70" fill="#26215C" opacity="0.4"/>
+  </g>
+
+  <!-- Documento (ligeramente a la izquierda del centro óptico) -->
+  <rect x="98" y="100" width="100" height="126" rx="14" fill="white" opacity="0.16"/>
+  <rect x="98" y="100" width="100" height="126" rx="14" fill="none" stroke="white" stroke-width="2" opacity="0.45"/>
+  <polygon points="170,100 198,128 170,128" fill="#26215C" opacity="0.55"/>
+  <polygon points="170,100 198,128 198,100" fill="white" opacity="0.08"/>
+
+  <!-- Líneas contenido -->
+  <rect x="114" y="142" width="56" height="9" rx="4" fill="white" opacity="0.85"/>
+  <rect x="114" y="160" width="42" height="9" rx="4" fill="white" opacity="0.55"/>
+  <rect x="114" y="178" width="50" height="9" rx="4" fill="white" opacity="0.55"/>
+  <rect x="114" y="196" width="32" height="9" rx="4" fill="white" opacity="0.55"/>
+
+  <!-- Círculo ámbar solapado (a la derecha del documento) -->
+  <circle cx="216" cy="172" r="52" fill="#EF9F27"/>
+  <circle cx="216" cy="172" r="52" fill="none" stroke="#BA7517" stroke-width="2" opacity="0.45"/>
+
+  <!-- Rayo centrado en el círculo ámbar -->
+  <polygon points="223,142 204,174 219,174 212,204 236,170 221,170" fill="white"/>
+</svg>

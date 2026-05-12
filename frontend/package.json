@@ -13,6 +13,8 @@
     "axios": "^1.13.5",
     "frappe-gantt": "^1.2.2",
     "html5-qrcode": "^2.3.8",
+    "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.7",
     "laravel-echo": "^2.3.4",
     "pusher-js": "^8.5.0",
     "qrcode.react": "^4.2.0",

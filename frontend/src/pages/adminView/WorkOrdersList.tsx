@@ -18,6 +18,8 @@ import { getErrorMessage } from "../../utils/errorHelper";
 import { ImageModal } from "../../components/ImageModal";
 import { useWorkOrdersChannel } from "../../hooks/useWorkOrdersChannel";
 import "./WorkOrdersManager.css";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 const DEPT_COLORS: Record<string, string> = {
   taller: "#534AB7", instalacion: "#1D9E75",
@@ -222,62 +224,201 @@ export const WorkOrdersList: React.FC = () => {
         </div>
         <div style={{ display: "flex", gap: "0.5rem" }}>
           <button className="btn-outline" onClick={() => {
+            // ─── CSV PROFESIONAL — OrdenYa ─────────────────────────────────
             const SEP = ";"; // Excel ES por defecto usa ';'
             const esc = (v: any) => {
               const s = v === null || v === undefined ? "" : String(v);
               return /[";\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
             };
-            const fmtDate = (s?: string | null) => s ? new Date(s).toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit", year: "numeric" }) : "";
-            const PRIO_LABEL: Record<string, string> = { alta: "Alta", media: "Media", baja: "Baja" };
+            const row = (cells: any[]) => cells.map(esc).join(SEP);
+            const sectionRule = "──────────────────────────────────────────────────";
 
             const now = new Date();
-            const finalizadas = workOrders.filter(o => isOrderFinalizada(o)).length;
-            const enCurso = workOrders.length - finalizadas;
+            const fmtDate = (s?: string | null) =>
+              s ? new Date(s).toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit", year: "numeric" }) : "";
+            const fmtNum = (n: number, digits = 0) =>
+              n.toLocaleString("es-ES", { minimumFractionDigits: digits, maximumFractionDigits: digits });
+            const fmtPct = (n: number) => `${n.toLocaleString("es-ES", { maximumFractionDigits: 1 })}%`;
+            const fmtHours = (sec: number) => {
+              const h = Math.floor(sec / 3600);
+              const m = Math.floor((sec % 3600) / 60);
+              return `${h}h ${m.toString().padStart(2, "0")}m`;
+            };
+            const daysUntil = (s?: string | null) => {
+              if (!s) return null;
+              const today = new Date(); today.setHours(0,0,0,0);
+              const d = new Date(s); d.setHours(0,0,0,0);
+              return Math.ceil((d.getTime() - today.getTime()) / 86400000);
+            };
 
+            const PRIO_LABEL: Record<string, string> = { alta: "Alta", media: "Media", baja: "Baja" };
+
+            // ── Agregados por orden ──
+            const enriched = workOrders.map(o => {
+              const depts = o.departments ?? [];
+              const workersSet = new Set<string>();
+              let piezasAsignadas = 0, piezasCompletadas = 0;
+              depts.forEach((d: any) => {
+                (d.workers ?? []).forEach((w: any) => {
+                  if (w.user?.name) workersSet.add(w.user.name);
+                  piezasAsignadas   += (w.piezas_asignadas ?? 0);
+                  piezasCompletadas += (w.piezas_completadas ?? 0);
+                });
+              });
+              const sessions = (o as any).work_sessions ?? [];
+              const totalSec = sessions.reduce((s: number, ws: any) => {
+                if (!ws.end_time) return s;
+                return s + Math.max(0, Math.floor((new Date(ws.end_time).getTime() - new Date(ws.start_time).getTime()) / 1000));
+              }, 0);
+              const progress = piezasAsignadas > 0
+                ? Math.min(100, (piezasCompletadas / piezasAsignadas) * 100)
+                : (isOrderFinalizada(o) ? 100 : 0);
+              return {
+                o, depts,
+                deptNames: depts.flatMap((d: any) => d.department?.name ? [d.department.name] : []).join(" + "),
+                workers: Array.from(workersSet).sort((a, b) => a.localeCompare(b, "es")).join(", "),
+                piezasAsignadas, piezasCompletadas, progress,
+                sessions: sessions.length,
+                totalSec,
+                diasRestantes: daysUntil(o.fecha_fin),
+              };
+            });
+
+            // ── Estadísticas globales ──
+            const finalizadas = enriched.filter(e => isOrderFinalizada(e.o)).length;
+            const enCurso = enriched.length - finalizadas;
+            const totPiezasAsig = enriched.reduce((s, e) => s + e.piezasAsignadas, 0);
+            const totPiezasHechas = enriched.reduce((s, e) => s + e.piezasCompletadas, 0);
+            const totSec = enriched.reduce((s, e) => s + e.totalSec, 0);
+            const progresoGlobal = totPiezasAsig > 0 ? (totPiezasHechas / totPiezasAsig) * 100 : 0;
+
+            // Por departamento
+            const byDept: Record<string, { ordenes: number; asignadas: number; completadas: number; segundos: number }> = {};
+            enriched.forEach(e => {
+              e.depts.forEach((d: any) => {
+                const k = d.department?.name ?? "—";
+                byDept[k] ??= { ordenes: 0, asignadas: 0, completadas: 0, segundos: 0 };
+                byDept[k].ordenes++;
+                (d.workers ?? []).forEach((w: any) => {
+                  byDept[k].asignadas   += (w.piezas_asignadas ?? 0);
+                  byDept[k].completadas += (w.piezas_completadas ?? 0);
+                });
+              });
+            });
+
+            // Por prioridad
+            const byPrio: Record<string, number> = { alta: 0, media: 0, baja: 0, "—": 0 };
+            enriched.forEach(e => {
+              const p = (e.o as any).prioridad ?? "—";
+              byPrio[p] = (byPrio[p] ?? 0) + 1;
+            });
+
+            // ── Construir CSV ──
             const lines: string[] = [];
-            // ── Encabezado del informe ──
-            lines.push(["OrdenYa — Listado de Órdenes de Trabajo"].map(esc).join(SEP));
-            lines.push(["Generado", now.toLocaleString("es-ES", { dateStyle: "long", timeStyle: "short" })].map(esc).join(SEP));
-            lines.push(["Total órdenes", workOrders.length, "En curso", enCurso, "Finalizadas", finalizadas].map(esc).join(SEP));
-            lines.push("");
-            // ── Cabeceras tabla ──
-            lines.push(["Código", "Nombre", "Cliente", "Pieza (código)", "Pieza (nombre)", "Prioridad", "Unidades", "Fecha inicio", "Fecha fin", "Departamentos", "Trabajadores asignados", "Estado"].map(esc).join(SEP));
 
-            // ── Datos ordenados por código ──
-            const sorted = workOrders.toSorted((a, b) => a.codigo_orden.localeCompare(b.codigo_orden, "es", { numeric: true }));
-            sorted.forEach(o => {
-              const depts = (o.departments ?? []).flatMap((d: any) => { const r = d.department?.name; return r ? [r] : []; }).join(" + ");
-              const workers = Array.from(new Set(
-                (o.departments ?? []).flatMap((d: any) => (d.workers ?? []).flatMap((w: any) => { const r = w.user?.name; return r ? [r] : []; }))
-              )).join(", ");
-              const p = (o as any).pieza;
-              lines.push([
+            // Cabecera reporte
+            lines.push(row(["OrdenYa — Informe de Órdenes de Trabajo"]));
+            lines.push(row([sectionRule]));
+            lines.push(row(["Generado", now.toLocaleString("es-ES", { dateStyle: "full", timeStyle: "short" })]));
+            lines.push(row(["Origen", typeof window !== "undefined" ? window.location.host : ""]));
+            lines.push(row(["Total registros", enriched.length]));
+            lines.push("");
+
+            // Resumen ejecutivo
+            lines.push(row(["RESUMEN EJECUTIVO"]));
+            lines.push(row([sectionRule]));
+            lines.push(row(["Métrica", "Valor"]));
+            lines.push(row(["Total de órdenes", fmtNum(enriched.length)]));
+            lines.push(row(["En curso", fmtNum(enCurso)]));
+            lines.push(row(["Finalizadas", fmtNum(finalizadas)]));
+            lines.push(row(["% Finalizadas", enriched.length > 0 ? fmtPct((finalizadas / enriched.length) * 100) : "—"]));
+            lines.push(row(["Piezas asignadas (total)", fmtNum(totPiezasAsig)]));
+            lines.push(row(["Piezas completadas (total)", fmtNum(totPiezasHechas)]));
+            lines.push(row(["Progreso global", fmtPct(progresoGlobal)]));
+            lines.push(row(["Horas trabajadas (total)", fmtHours(totSec)]));
+            lines.push("");
+
+            // Por departamento
+            lines.push(row(["DESGLOSE POR DEPARTAMENTO"]));
+            lines.push(row([sectionRule]));
+            lines.push(row(["Departamento", "Órdenes", "Piezas asignadas", "Piezas completadas", "Progreso %"]));
+            Object.entries(byDept)
+              .sort(([a], [b]) => a.localeCompare(b, "es"))
+              .forEach(([name, d]) => {
+                const pct = d.asignadas > 0 ? (d.completadas / d.asignadas) * 100 : 0;
+                lines.push(row([name, d.ordenes, fmtNum(d.asignadas), fmtNum(d.completadas), fmtPct(pct)]));
+              });
+            lines.push("");
+
+            // Por prioridad
+            lines.push(row(["DESGLOSE POR PRIORIDAD"]));
+            lines.push(row([sectionRule]));
+            lines.push(row(["Prioridad", "Órdenes", "% del total"]));
+            (["alta", "media", "baja", "—"] as const).forEach(p => {
+              const c = byPrio[p] ?? 0;
+              if (c === 0 && p === "—") return;
+              const label = p === "—" ? "Sin prioridad" : PRIO_LABEL[p];
+              const pct = enriched.length > 0 ? (c / enriched.length) * 100 : 0;
+              lines.push(row([label, c, fmtPct(pct)]));
+            });
+            lines.push("");
+
+            // Detalle órdenes
+            lines.push(row(["DETALLE DE ÓRDENES"]));
+            lines.push(row([sectionRule]));
+            lines.push(row([
+              "Código", "Tipo", "Nombre", "Cliente", "Cod. Cliente",
+              "Pieza (cód.)", "Pieza (nombre)", "Prioridad", "Unidades",
+              "Fecha inicio", "Fecha límite", "Días restantes",
+              "Departamentos", "Trabajadores",
+              "Piezas asignadas", "Piezas completadas", "Progreso %",
+              "Sesiones", "Tiempo total",
+              "Estado", "Creada",
+            ]));
+
+            const sorted = [...enriched].sort((a, b) =>
+              a.o.codigo_orden.localeCompare(b.o.codigo_orden, "es", { numeric: true }));
+            sorted.forEach(e => {
+              const o = e.o as any;
+              const p = o.pieza;
+              const dr = e.diasRestantes;
+              const drLabel = dr === null ? "" : dr < 0 ? `Vencida (${Math.abs(dr)}d)` : `${dr}d`;
+              lines.push(row([
                 o.codigo_orden,
+                o.tipo ?? "",
                 o.nombre_orden,
                 o.nombre_cliente ?? "",
+                o.codigo_cliente ?? "",
                 p?.codigo ?? "",
                 p?.nombre ?? "",
-                PRIO_LABEL[(o as any).prioridad as string] ?? "",
+                PRIO_LABEL[o.prioridad as string] ?? "",
                 o.unidades ?? "",
                 fmtDate(o.fecha_inicio),
                 fmtDate(o.fecha_fin),
-                depts,
-                workers,
+                drLabel,
+                e.deptNames,
+                e.workers,
+                e.piezasAsignadas,
+                e.piezasCompletadas,
+                fmtPct(e.progress),
+                e.sessions,
+                e.totalSec > 0 ? fmtHours(e.totalSec) : "",
                 isOrderFinalizada(o) ? "Finalizada" : "En curso",
-              ].map(esc).join(SEP));
+                fmtDate(o.created_at),
+              ]));
             });
 
-            // ── Totales al final ──
             lines.push("");
-            lines.push(["TOTAL", workOrders.length].map(esc).join(SEP));
-            lines.push(["En curso", enCurso].map(esc).join(SEP));
-            lines.push(["Finalizadas", finalizadas].map(esc).join(SEP));
+            lines.push(row([sectionRule]));
+            lines.push(row(["Fin del informe — OrdenYa"]));
 
+            // ── Descarga ──
             const csv = lines.join("\r\n");
             const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
             const url = URL.createObjectURL(blob);
             const a = document.createElement("a");
-            const stamp = now.toISOString().slice(0, 10).replace(/-/g, "");
+            const pad = (n: number) => n.toString().padStart(2, "0");
+            const stamp = `${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}`;
             a.href = url;
             a.download = `OrdenYa_ordenes_${stamp}.csv`;
             document.body.appendChild(a);
@@ -289,6 +430,465 @@ export const WorkOrdersList: React.FC = () => {
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4 M7 10l5 5 5-5 M12 15V3"/>
             </svg>
             Exportar CSV
+          </button>
+          <button className="btn-outline" onClick={async () => {
+            // ─── PDF PROFESIONAL — OrdenYa ─────────────────────────────────
+            const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+            const W = doc.internal.pageSize.getWidth();
+            const H = doc.internal.pageSize.getHeight();
+            const BRAND = "#3C3489";
+            const BRAND_DARK = "#26215C";
+            const AMBER = "#EF9F27";
+            const GREEN = "#1D9E75";
+            const RED = "#EF4444";
+            const TEXT_MUTED = "#6B7280";
+
+            // Rasterizar logo SVG a PNG dataURL (logo completo con wordmark)
+            const loadLogoPng = async (): Promise<{ data: string; w: number; h: number } | null> => {
+              try {
+                const res = await fetch("/logo_ordenya_pro.svg");
+                const svgText = await res.text();
+                const blob = new Blob([svgText], { type: "image/svg+xml" });
+                const url = URL.createObjectURL(blob);
+                const img = new Image();
+                await new Promise<void>((ok, ko) => { img.onload = () => ok(); img.onerror = ko; img.src = url; });
+                // viewBox 680x380 → escalar 2x para nitidez
+                const cw = 680 * 2, ch = 380 * 2;
+                const canvas = document.createElement("canvas");
+                canvas.width = cw; canvas.height = ch;
+                const ctx = canvas.getContext("2d");
+                if (!ctx) return null;
+                ctx.drawImage(img, 0, 0, cw, ch);
+                URL.revokeObjectURL(url);
+                return { data: canvas.toDataURL("image/png"), w: cw, h: ch };
+              } catch { return null; }
+            };
+            const logoPng = await loadLogoPng();
+
+            const now = new Date();
+            const PRIO_LABEL: Record<string, string> = { alta: "Alta", media: "Media", baja: "Baja" };
+            const fmtDate = (s?: string | null) =>
+              s ? new Date(s).toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit", year: "numeric" }) : "—";
+            const fmtNum = (n: number) => n.toLocaleString("es-ES");
+            const fmtPct = (n: number) => `${n.toLocaleString("es-ES", { maximumFractionDigits: 1 })}%`;
+            const fmtHours = (sec: number) => {
+              const h = Math.floor(sec / 3600);
+              const m = Math.floor((sec % 3600) / 60);
+              return `${h}h ${m.toString().padStart(2, "0")}m`;
+            };
+
+            // ── Cabecera de marca (se dibuja en cada página) ──
+            const HEADER_H = 28;
+            const drawHeader = () => {
+              // Fondo morado oscuro a todo el ancho
+              doc.setFillColor(BRAND_DARK);
+              doc.rect(0, 0, W, HEADER_H, "F");
+              // Banda principal morada (cubre 75%)
+              doc.setFillColor(BRAND);
+              doc.rect(0, 0, W * 0.75, HEADER_H, "F");
+
+              // Logo completo (mantiene aspect 680:380 → 50mm × 28mm aprox)
+              if (logoPng) {
+                const logoH = HEADER_H - 4;   // 24mm alto
+                const logoW = logoH * (680 / 380); // ≈ 43mm
+                doc.addImage(logoPng.data, "PNG", 6, 2, logoW, logoH);
+              } else {
+                // Fallback: badge + texto
+                doc.setFillColor(AMBER);
+                doc.roundedRect(6, 6, 16, 16, 3, 3, "F");
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(16);
+                doc.setTextColor("#FFFFFF");
+                doc.text("Orden", 26, 15);
+                const wTxt = doc.getTextWidth("Orden");
+                doc.setTextColor(AMBER);
+                doc.text("Ya", 26 + wTxt, 15);
+              }
+
+              // Tagline a la derecha del logo (centrado vertical)
+              doc.setFont("helvetica", "normal");
+              doc.setFontSize(8.5);
+              doc.setTextColor("#D8D2FF");
+              doc.text("Gestión Industrial de Órdenes de Trabajo", 56, 16);
+
+              // Fecha derecha
+              doc.setFontSize(9.5);
+              doc.setTextColor("#FFFFFF");
+              const dateStr = now.toLocaleString("es-ES", { dateStyle: "long", timeStyle: "short" });
+              doc.text(dateStr, W - 8, 13, { align: "right" });
+              doc.setFontSize(8);
+              doc.setTextColor("#D8D2FF");
+              doc.text("Informe generado automáticamente", W - 8, 19, { align: "right" });
+
+              // Línea amber acento
+              doc.setFillColor(AMBER);
+              doc.rect(0, HEADER_H, W, 1, "F");
+            };
+
+            // ── Footer ──
+            const drawFooter = (pageNum: number, totalPages: number) => {
+              doc.setDrawColor("#E5E7EB");
+              doc.setLineWidth(0.2);
+              doc.line(8, H - 10, W - 8, H - 10);
+              doc.setFont("helvetica", "normal");
+              doc.setFontSize(8);
+              doc.setTextColor(TEXT_MUTED);
+              doc.text("OrdenYa — Informe confidencial", 8, H - 5);
+              doc.text(`Página ${pageNum} de ${totalPages}`, W - 8, H - 5, { align: "right" });
+              doc.text(typeof window !== "undefined" ? window.location.host : "", W / 2, H - 5, { align: "center" });
+            };
+
+            // ── Agregados ──
+            const enriched = workOrders.map(o => {
+              const depts = o.departments ?? [];
+              const workersSet = new Set<string>();
+              let piezasAsignadas = 0, piezasCompletadas = 0;
+              depts.forEach((d: any) => {
+                (d.workers ?? []).forEach((w: any) => {
+                  if (w.user?.name) workersSet.add(w.user.name);
+                  piezasAsignadas   += (w.piezas_asignadas ?? 0);
+                  piezasCompletadas += (w.piezas_completadas ?? 0);
+                });
+              });
+              const sessions = (o as any).work_sessions ?? [];
+              const totalSec = sessions.reduce((s: number, ws: any) => {
+                if (!ws.end_time) return s;
+                return s + Math.max(0, Math.floor((new Date(ws.end_time).getTime() - new Date(ws.start_time).getTime()) / 1000));
+              }, 0);
+              const progress = piezasAsignadas > 0
+                ? Math.min(100, (piezasCompletadas / piezasAsignadas) * 100)
+                : (isOrderFinalizada(o) ? 100 : 0);
+              return {
+                o, depts,
+                deptNames: depts.flatMap((d: any) => d.department?.name ? [d.department.name] : []).join(" + "),
+                workers: Array.from(workersSet).sort().join(", "),
+                piezasAsignadas, piezasCompletadas, progress,
+                sessions: sessions.length,
+                totalSec,
+              };
+            });
+            const finalizadas = enriched.filter(e => isOrderFinalizada(e.o)).length;
+            const enCurso = enriched.length - finalizadas;
+            const totPiezasAsig = enriched.reduce((s, e) => s + e.piezasAsignadas, 0);
+            const totPiezasHechas = enriched.reduce((s, e) => s + e.piezasCompletadas, 0);
+            const totSec = enriched.reduce((s, e) => s + e.totalSec, 0);
+            const progresoGlobal = totPiezasAsig > 0 ? (totPiezasHechas / totPiezasAsig) * 100 : 0;
+
+            const byDept: Record<string, { ordenes: number; asignadas: number; completadas: number }> = {};
+            enriched.forEach(e => {
+              e.depts.forEach((d: any) => {
+                const k = d.department?.name ?? "—";
+                byDept[k] ??= { ordenes: 0, asignadas: 0, completadas: 0 };
+                byDept[k].ordenes++;
+                (d.workers ?? []).forEach((w: any) => {
+                  byDept[k].asignadas   += (w.piezas_asignadas ?? 0);
+                  byDept[k].completadas += (w.piezas_completadas ?? 0);
+                });
+              });
+            });
+
+            // Por prioridad
+            const byPrio: Record<string, number> = { alta: 0, media: 0, baja: 0 };
+            enriched.forEach(e => {
+              const p = (e.o as any).prioridad ?? null;
+              if (p && byPrio[p] !== undefined) byPrio[p]++;
+            });
+
+            // ─── PRIMERA PÁGINA — Resumen ──────────────────────────────────
+            drawHeader();
+
+            // ── Banda de título de página ──
+            let y = HEADER_H + 6;
+            doc.setFillColor("#F8FAFC");
+            doc.rect(0, y - 2, W, 18, "F");
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(20);
+            doc.setTextColor(BRAND_DARK);
+            doc.text("Informe de Órdenes de Trabajo", 10, y + 6);
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(9.5);
+            doc.setTextColor(TEXT_MUTED);
+            doc.text(
+              `${fmtNum(enriched.length)} registros · ${fmtNum(enCurso)} en curso · ${fmtNum(finalizadas)} finalizadas · Situación actual`,
+              10, y + 12
+            );
+            y += 22;
+
+            // ── KPI cards (4 columnas) — más profesional con acento superior ──
+            const cardGap = 4;
+            const cardW = (W - 20 - cardGap * 3) / 4;
+            const cardH = 24;
+            const cards: Array<{ label: string; value: string; color: string; sub?: string }> = [
+              { label: "TOTAL ÓRDENES", value: fmtNum(enriched.length), color: BRAND, sub: "registradas" },
+              { label: "EN CURSO", value: fmtNum(enCurso), color: AMBER, sub: enriched.length > 0 ? `${fmtPct((enCurso / enriched.length) * 100)} del total` : "—" },
+              { label: "FINALIZADAS", value: fmtNum(finalizadas), color: GREEN, sub: enriched.length > 0 ? `${fmtPct((finalizadas / enriched.length) * 100)} del total` : "—" },
+              { label: "PROGRESO GLOBAL", value: fmtPct(progresoGlobal), color: BRAND_DARK, sub: `${fmtNum(totPiezasHechas)}/${fmtNum(totPiezasAsig)} piezas` },
+            ];
+            cards.forEach((c, i) => {
+              const x = 10 + i * (cardW + cardGap);
+              // Fondo card
+              doc.setFillColor("#FFFFFF");
+              doc.setDrawColor("#E2E8F0");
+              doc.setLineWidth(0.2);
+              doc.roundedRect(x, y, cardW, cardH, 2.5, 2.5, "FD");
+              // Barra superior color
+              doc.setFillColor(c.color);
+              doc.roundedRect(x, y, cardW, 2.5, 2.5, 2.5, "F");
+              doc.rect(x, y + 1, cardW, 1.5, "F");
+              // Label
+              doc.setFont("helvetica", "bold");
+              doc.setFontSize(7.5);
+              doc.setTextColor(TEXT_MUTED);
+              doc.text(c.label, x + 5, y + 8);
+              // Valor grande
+              doc.setFont("helvetica", "bold");
+              doc.setFontSize(18);
+              doc.setTextColor("#0F172A");
+              doc.text(c.value, x + 5, y + 17);
+              // Sublabel
+              if (c.sub) {
+                doc.setFont("helvetica", "normal");
+                doc.setFontSize(7.5);
+                doc.setTextColor(TEXT_MUTED);
+                doc.text(c.sub, x + 5, y + 22);
+              }
+            });
+            y += cardH + 10;
+
+            // ── Headers Resumen ejecutivo + Desglose por dept (en paralelo) ──
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(10.5);
+            doc.setTextColor(BRAND_DARK);
+            doc.text("Resumen ejecutivo", 10, y);
+            doc.text("Desglose por departamento", W / 2 + 5, y);
+            // Subrayado decorativo
+            doc.setDrawColor(AMBER);
+            doc.setLineWidth(0.6);
+            doc.line(10, y + 1.5, 60, y + 1.5);
+            doc.line(W / 2 + 5, y + 1.5, W / 2 + 55, y + 1.5);
+            y += 4;
+
+            autoTable(doc, {
+              startY: y,
+              head: [["Métrica", "Valor"]],
+              body: [
+                ["Total de órdenes", fmtNum(enriched.length)],
+                ["En curso", fmtNum(enCurso)],
+                ["Finalizadas", fmtNum(finalizadas)],
+                ["% Finalizadas", enriched.length > 0 ? fmtPct((finalizadas / enriched.length) * 100) : "—"],
+                ["Piezas asignadas (total)", fmtNum(totPiezasAsig)],
+                ["Piezas completadas (total)", fmtNum(totPiezasHechas)],
+                ["Progreso global", fmtPct(progresoGlobal)],
+                ["Horas trabajadas (total)", totSec > 0 ? fmtHours(totSec) : "—"],
+              ],
+              theme: "grid",
+              styles: { font: "helvetica", fontSize: 9, cellPadding: 2.4, lineColor: "#E2E8F0", lineWidth: 0.2 },
+              headStyles: { fillColor: BRAND, textColor: "#FFFFFF", fontStyle: "bold", halign: "left" },
+              alternateRowStyles: { fillColor: "#F8FAFC" },
+              columnStyles: { 0: { fontStyle: "bold", textColor: "#334155" }, 1: { halign: "right", textColor: "#0F172A" } },
+              margin: { left: 10, right: W / 2 + 5 },
+              tableWidth: W / 2 - 15,
+            });
+            const resumenY = (doc as any).lastAutoTable.finalY;
+
+            autoTable(doc, {
+              startY: y,
+              head: [["Departamento", "Órd.", "Asign.", "Hechas", "Progreso"]],
+              body: Object.entries(byDept)
+                .sort(([a], [b]) => a.localeCompare(b, "es"))
+                .map(([name, d]) => {
+                  const pct = d.asignadas > 0 ? (d.completadas / d.asignadas) * 100 : 0;
+                  return [name, fmtNum(d.ordenes), fmtNum(d.asignadas), fmtNum(d.completadas), fmtPct(pct)];
+                }),
+              theme: "grid",
+              styles: { font: "helvetica", fontSize: 9, cellPadding: 2.4, lineColor: "#E2E8F0", lineWidth: 0.2 },
+              headStyles: { fillColor: BRAND, textColor: "#FFFFFF", fontStyle: "bold" },
+              alternateRowStyles: { fillColor: "#F8FAFC" },
+              columnStyles: {
+                0: { fontStyle: "bold", textColor: "#334155" },
+                1: { halign: "right" }, 2: { halign: "right" }, 3: { halign: "right" }, 4: { halign: "right", fontStyle: "bold" },
+              },
+              margin: { left: W / 2 + 5, right: 10 },
+            });
+            const deptY = (doc as any).lastAutoTable.finalY;
+
+            // ── Distribución por prioridad — bajo "Desglose por dept" (col derecha) ──
+            const colLeft = W / 2 + 5;
+            const colRight = W - 10;
+            const colW = colRight - colLeft;
+            let yPrio = deptY + 8;
+
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(10.5);
+            doc.setTextColor(BRAND_DARK);
+            doc.text("Distribución por prioridad", colLeft, yPrio);
+            doc.setDrawColor(AMBER);
+            doc.setLineWidth(0.6);
+            doc.line(colLeft, yPrio + 1.5, colLeft + 50, yPrio + 1.5);
+            yPrio += 7;
+
+            const prioCfg: Array<{ key: keyof typeof byPrio; label: string; color: string }> = [
+              { key: "alta",  label: "Alta",  color: RED },
+              { key: "media", label: "Media", color: AMBER },
+              { key: "baja",  label: "Baja",  color: GREEN },
+            ];
+            // Layout: [label 14mm] [barra flex] [count 24mm] [pct 16mm der]
+            const labelW = 14;
+            const pctW = 16;
+            const countW = 24;
+            const barX = colLeft + labelW;
+            const barWMax = colW - labelW - countW - pctW - 4;
+            prioCfg.forEach((cfg, i) => {
+              const c = byPrio[cfg.key];
+              const pct = enriched.length > 0 ? (c / enriched.length) * 100 : 0;
+              const rowY = yPrio + i * 7;
+              // Label
+              doc.setFont("helvetica", "bold");
+              doc.setFontSize(9);
+              doc.setTextColor("#334155");
+              doc.text(cfg.label, colLeft, rowY + 3.5);
+              // Track
+              doc.setFillColor("#F1F5F9");
+              doc.roundedRect(barX, rowY, barWMax, 5, 1, 1, "F");
+              // Fill
+              if (pct > 0) {
+                doc.setFillColor(cfg.color);
+                doc.roundedRect(barX, rowY, (barWMax * pct) / 100, 5, 1, 1, "F");
+              }
+              // Count
+              doc.setFont("helvetica", "bold");
+              doc.setFontSize(9);
+              doc.setTextColor("#0F172A");
+              doc.text(`${c} órdenes`, barX + barWMax + 2, rowY + 3.5);
+              // Porcentaje alineado a la derecha
+              doc.setFont("helvetica", "normal");
+              doc.setFontSize(8);
+              doc.setTextColor(TEXT_MUTED);
+              doc.text(`(${fmtPct(pct)})`, colRight, rowY + 3.5, { align: "right" });
+            });
+
+            // ─── NUEVA PÁGINA — Detalle de órdenes ─────────────────────────
+            doc.addPage();
+            drawHeader();
+
+            // Banda título
+            let yD = HEADER_H + 6;
+            doc.setFillColor("#F8FAFC");
+            doc.rect(0, yD - 2, W, 18, "F");
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(20);
+            doc.setTextColor(BRAND_DARK);
+            doc.text("Detalle de órdenes", 10, yD + 6);
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(9.5);
+            doc.setTextColor(TEXT_MUTED);
+            doc.text(`Listado completo · Ordenado por código · ${fmtNum(enriched.length)} registros`, 10, yD + 12);
+            yD += 22;
+
+            const sorted = [...enriched].sort((a, b) =>
+              a.o.codigo_orden.localeCompare(b.o.codigo_orden, "es", { numeric: true }));
+
+            autoTable(doc, {
+              startY: yD,
+              head: [[
+                "Código", "Nombre", "Cliente", "Pieza", "Prio.",
+                "Uds.", "Fecha Límite", "Depts.", "Trabajadores",
+                "Piezas", "Progreso", "Tiempo", "Estado",
+              ]],
+              body: sorted.map(e => {
+                const o = e.o as any;
+                const piezas = e.piezasAsignadas > 0
+                  ? `${e.piezasCompletadas}/${e.piezasAsignadas}`
+                  : `${e.piezasCompletadas}`;
+                return [
+                  o.codigo_orden,
+                  o.nombre_orden,
+                  o.nombre_cliente ?? "—",
+                  o.pieza?.codigo ?? "—",
+                  PRIO_LABEL[o.prioridad as string] ?? "—",
+                  o.unidades ?? "—",
+                  fmtDate(o.fecha_fin),
+                  e.deptNames || "—",
+                  e.workers || "—",
+                  piezas,
+                  { content: fmtPct(e.progress), _progress: e.progress } as any,
+                  e.totalSec > 0 ? fmtHours(e.totalSec) : "—",
+                  isOrderFinalizada(o) ? "Finalizada" : "En curso",
+                ];
+              }),
+              theme: "striped",
+              styles: { font: "helvetica", fontSize: 8, cellPadding: 2, overflow: "linebreak", lineColor: "#E2E8F0", lineWidth: 0.15 },
+              headStyles: { fillColor: BRAND, textColor: "#FFFFFF", fontStyle: "bold", fontSize: 8, halign: "left" },
+              alternateRowStyles: { fillColor: "#F8FAFC" },
+              columnStyles: {
+                0: { fontStyle: "bold", textColor: BRAND_DARK, cellWidth: 19 },
+                1: { cellWidth: 32 },
+                2: { cellWidth: 26 },
+                3: { cellWidth: 14 },
+                4: { cellWidth: 13, halign: "center", fontStyle: "bold" },
+                5: { cellWidth: 11, halign: "right" },
+                6: { cellWidth: 19, halign: "center" },
+                7: { cellWidth: 24 },
+                8: { cellWidth: 38 },
+                9: { cellWidth: 15, halign: "center", fontStyle: "bold" },
+                10: { cellWidth: 22 },
+                11: { cellWidth: 16, halign: "right" },
+                12: { cellWidth: 19, halign: "center", fontStyle: "bold" },
+              },
+              didParseCell: (data: any) => {
+                if (data.section !== "body") return;
+                // Estado coloreado
+                if (data.column.index === 12) {
+                  const v = String(data.cell.raw);
+                  data.cell.styles.textColor = v === "Finalizada" ? GREEN : AMBER;
+                }
+                // Prioridad coloreada
+                if (data.column.index === 4) {
+                  const v = String(data.cell.raw);
+                  if (v === "Alta") data.cell.styles.textColor = RED;
+                  else if (v === "Media") data.cell.styles.textColor = AMBER;
+                  else if (v === "Baja") data.cell.styles.textColor = GREEN;
+                }
+              },
+              didDrawCell: (data: any) => {
+                // Barra de progreso visual en columna 10
+                if (data.section === "body" && data.column.index === 10) {
+                  const raw = data.cell.raw as any;
+                  const pct = typeof raw === "object" && raw?._progress !== undefined ? raw._progress : 0;
+                  const cell = data.cell;
+                  const barX = cell.x + 1.5;
+                  const barY = cell.y + cell.height - 2.2;
+                  const barW = cell.width - 3;
+                  const barH = 1.2;
+                  doc.setFillColor("#E2E8F0");
+                  doc.roundedRect(barX, barY, barW, barH, 0.4, 0.4, "F");
+                  if (pct > 0) {
+                    const color = pct >= 100 ? GREEN : pct >= 50 ? AMBER : BRAND;
+                    doc.setFillColor(color);
+                    doc.roundedRect(barX, barY, (barW * Math.min(100, pct)) / 100, barH, 0.4, 0.4, "F");
+                  }
+                }
+              },
+              margin: { top: HEADER_H + 4, left: 6, right: 6, bottom: 14 },
+              didDrawPage: () => { drawHeader(); },
+            });
+
+            // ── Footer en todas las páginas ──
+            const totalPages = doc.getNumberOfPages();
+            for (let i = 1; i <= totalPages; i++) {
+              doc.setPage(i);
+              drawFooter(i, totalPages);
+            }
+
+            // ── Descarga ──
+            const pad = (n: number) => n.toString().padStart(2, "0");
+            const stamp = `${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}`;
+            doc.save(`OrdenYa_ordenes_${stamp}.pdf`);
+          }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 6, verticalAlign: "middle" }}>
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2v6h6 M16 13H8 M16 17H8 M10 9H8"/>
+            </svg>
+            Exportar PDF
           </button>
           {!isReadOnly && (
             <button className="btn-primary" onClick={() => navigate(`${basePath}/ordenes/nuevo`)}>
