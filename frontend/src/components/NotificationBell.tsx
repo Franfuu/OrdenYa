@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import { createPortal } from "react-dom";
 import { http } from "../services/http";
+import { getEcho } from "../services/echo";
 import { useAuth } from "../auth/authContext";
 
 interface Notif {
@@ -9,6 +10,9 @@ interface Notif {
   body: string | null;
   link: string | null;
   read_at: string | null;
+  acted_at?: string | null;
+  type?: string | null;
+  data?: Record<string, any> | null;
   created_at: string;
 }
 
@@ -29,9 +33,29 @@ export const NotificationBell: React.FC = () => {
 
   useEffect(() => {
     load();
-    const id = setInterval(load, 30000);
+    // Fallback polling cada 60s por si se cae la conexión WebSocket
+    const id = setInterval(load, 60000);
     return () => clearInterval(id);
   }, [user]);
+
+  // Live updates vía Reverb (canal privado por usuario). Si Reverb está caído, sigue funcionando por polling.
+  useEffect(() => {
+    if (!user?.id) return;
+    let channel: any = null;
+    try {
+      const echo = getEcho();
+      channel = echo.private(`App.Models.User.${user.id}`);
+      channel.listen('.notification.created', (e: { notification: Notif }) => {
+        setNotifs(prev => {
+          if (prev.some(n => n.id === e.notification.id)) return prev;
+          return [e.notification, ...prev].slice(0, 30);
+        });
+      });
+    } catch { /* noop */ }
+    return () => {
+      try { getEcho().leave(`App.Models.User.${user.id}`); } catch { /* noop */ }
+    };
+  }, [user?.id]);
 
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
@@ -68,6 +92,19 @@ export const NotificationBell: React.FC = () => {
       await http.post("/notifications/mark-all-read");
       setNotifs(prev => prev.map(n => ({ ...n, read_at: n.read_at ?? new Date().toISOString() })));
     } catch {}
+  };
+
+  const [approvingId, setApprovingId] = useState<number | null>(null);
+  const approve = async (id: number) => {
+    setApprovingId(id);
+    try {
+      await http.post(`/notifications/${id}/approve`);
+      setNotifs(prev => prev.map(n => n.id === id ? { ...n, acted_at: new Date().toISOString(), read_at: n.read_at ?? new Date().toISOString() } : n));
+    } catch {
+      // Silent — interceptor toasts on error
+    } finally {
+      setApprovingId(null);
+    }
   };
 
   if (!user) return null;
@@ -164,6 +201,34 @@ export const NotificationBell: React.FC = () => {
                   <div style={{ fontSize: "0.7rem", color: "var(--text-secondary)", opacity: 0.7, marginTop: 5 }}>
                     {new Date(n.created_at).toLocaleString("es-ES", { dateStyle: "short", timeStyle: "short" })}
                   </div>
+                  {n.type === 'worker_completion_approval' && (
+                    <div style={{ marginTop: 8 }}>
+                      {n.acted_at ? (
+                        <span style={{ fontSize: "0.72rem", fontWeight: 700, padding: "3px 9px", borderRadius: 999, background: "rgba(29,158,117,0.15)", color: "#1D9E75" }}>
+                          ✓ Aprobado
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => approve(n.id)}
+                          disabled={approvingId === n.id}
+                          style={{
+                            background: "linear-gradient(135deg, #EF9F27 0%, #ffb84d 100%)",
+                            color: "#1a1640",
+                            border: "none",
+                            borderRadius: 8,
+                            padding: "6px 14px",
+                            fontSize: "0.78rem",
+                            fontWeight: 700,
+                            cursor: approvingId === n.id ? "not-allowed" : "pointer",
+                            opacity: approvingId === n.id ? 0.6 : 1,
+                            boxShadow: "0 2px 8px rgba(239, 159, 39, 0.3)",
+                          }}
+                        >
+                          {approvingId === n.id ? "Aprobando…" : "Aprobar"}
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

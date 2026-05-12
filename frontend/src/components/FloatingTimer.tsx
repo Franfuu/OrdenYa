@@ -36,7 +36,13 @@ export const FloatingTimer: React.FC = () => {
 
     check();
     const id = setInterval(check, 8000);
-    return () => { cancelled = true; clearInterval(id); };
+    const onSessionEnded = () => setActive(null);
+    window.addEventListener('session:ended', onSessionEnded);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+      window.removeEventListener('session:ended', onSessionEnded);
+    };
   }, [user]);
 
   // Tick elapsed

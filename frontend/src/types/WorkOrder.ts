@@ -48,6 +48,8 @@ export interface WorkOrderDepartmentWorker {
   user_id: number;
   piezas_asignadas: number | null;
   piezas_completadas: number;
+  approved_at?: string | null;
+  approved_by?: number | null;
   user?: User;
   phase_pieces?: WorkerPhasePieces[];
 }

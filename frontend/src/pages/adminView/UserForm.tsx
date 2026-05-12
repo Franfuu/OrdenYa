@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { sileo } from "sileo";
 import { userService, User, Departamento } from "../../services/userService";
 import { SaveIcon, CancelIcon } from "../../components/Icons";
-import { getErrorMessage } from "../../utils/errorHelper";
+import { showHttpError } from "../../utils/errorHelper";
 import "./WorkOrderFormBrand.css";
 
 export const UserForm: React.FC = () => {
@@ -53,7 +53,7 @@ export const UserForm: React.FC = () => {
       sileo.success({ title: isEditing ? "Usuario actualizado" : "Usuario creado" });
       navigate("/admin/usuarios/lista");
     } catch (err: any) {
-      sileo.error({ title: "Error al guardar", description: getErrorMessage(err) });
+      showHttpError(err, "Error al guardar usuario");
     } finally {
       setLoading(false);
     }

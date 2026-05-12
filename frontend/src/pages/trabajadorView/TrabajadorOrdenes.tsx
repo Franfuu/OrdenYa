@@ -12,6 +12,7 @@ import { showHttpError } from "../../utils/errorHelper";
 import { LockIcon, MedicalIcon, BroomIcon, SearchIcon, SettingsIcon, ClockIcon, PlayIcon, PauseIcon, StopIcon } from "../../components/Icons";
 import { QRScanner } from "../../components/QRScanner";
 import { VoiceInput } from "../../components/VoiceInput";
+import { useWorkOrdersChannel } from "../../hooks/useWorkOrdersChannel";
 import "./OrdenesTemporizador.css";
 
 type ActionMode = "pause" | "stop";
@@ -63,10 +64,20 @@ export const TrabajadorOrdenes: React.FC = () => {
 
   // ─── Helpers ───
 
+  const userDeptSlug = (() => {
+    const d = (user?.departamento ?? "").toLowerCase();
+    if (d === "taller") return "taller";
+    if (d === "instalacion" || d === "instalación") return "instalacion";
+    return null; // General / null → both
+  })();
+
   const getMyDepts = (order: WorkOrder): WorkOrderDepartment[] => {
     if (!user) return [];
+    const restrict = user.role === 'trabajador' && userDeptSlug !== null;
     return (order.departments ?? []).filter(d =>
-      !d.finalizado_at && (d.workers ?? []).some(w => w.user_id === user.id)
+      !d.finalizado_at &&
+      (!restrict || d.department?.slug === userDeptSlug) &&
+      (d.workers ?? []).some(w => w.user_id === user.id && !w.approved_at)
     );
   };
 
@@ -95,16 +106,17 @@ export const TrabajadorOrdenes: React.FC = () => {
 
   const getPiezasCompletadas = (order: WorkOrder): number => {
     if (!user) return 0;
-    return (order.departments ?? []).reduce((total, dept) => {
+    // Solo cuenta los departamentos visibles para el usuario (respeta filtro por dept global)
+    return getMyDepts(order).reduce((total, dept) => {
       const worker = (dept.workers ?? []).find(w => w.user_id === user.id);
       return total + (worker?.piezas_completadas ?? 0);
     }, 0);
   };
 
   const getUnidades = (order: WorkOrder): number => {
-    // Suma las piezas asignadas al usuario actual en TODOS sus departamentos de la orden
+    // Suma las piezas asignadas SOLO en los departamentos del usuario (no del orden completo)
     if (!user) return order.unidades ?? 0;
-    const mine = (order.departments ?? []).reduce((total, dept) => {
+    const mine = getMyDepts(order).reduce((total, dept) => {
       const worker = (dept.workers ?? []).find(w => w.user_id === user.id);
       return total + (worker?.piezas_asignadas ?? 0);
     }, 0);
@@ -148,6 +160,9 @@ export const TrabajadorOrdenes: React.FC = () => {
 
   useEffect(() => { fetchOrders(); }, [fetchOrders]);
 
+  // Live: refetch al recibir cambio por WebSocket (mantiene sesión activa)
+  useWorkOrdersChannel(() => { fetchOrders(true); });
+
   // 60s polling — skip if active session to avoid interrupting timer state
   useEffect(() => {
     if (activeOrderId !== null) return;
@@ -167,6 +182,19 @@ export const TrabajadorOrdenes: React.FC = () => {
     }
     return () => { if (inactiveTimerRef.current) clearTimeout(inactiveTimerRef.current); };
   }, [activeOrderId, loading]);
+
+  // ESC closes open modals
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      if (showManualModal) setShowManualModal(false);
+      else if (showQR) setShowQR(false);
+      else if (phaseModalOrderId) setPhaseModalOrderId(null);
+      else if (inputOrderId) closeInput();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [showManualModal, showQR, phaseModalOrderId, inputOrderId]);
 
   // Timer tick
   useEffect(() => {
@@ -259,6 +287,7 @@ export const TrabajadorOrdenes: React.FC = () => {
       setActiveOrderId(null);
       sessionStartRef.current = null;
       setActiveSession(null);
+      window.dispatchEvent(new Event('session:ended'));
       closeInput();
       sileo.success({ title: 'Sesión pausada' });
       await fetchOrders();
@@ -276,6 +305,7 @@ export const TrabajadorOrdenes: React.FC = () => {
       setActiveOrderId(null);
       sessionStartRef.current = null;
       setActiveSession(null);
+      window.dispatchEvent(new Event('session:ended'));
       closeInput();
       sileo.success({ title: 'Sesión finalizada', description: `${piezas} piezas registradas` });
       await fetchOrders();
@@ -702,7 +732,7 @@ export const TrabajadorOrdenes: React.FC = () => {
                 <label htmlFor="manual-orden">Orden</label>
                 <select id="manual-orden" value={manualOrderId ?? ""} onChange={e => { setManualOrderId(Number(e.target.value)); setManualDeptId(null); setManualPhaseId(null); }}>
                   <option value="">Seleccionar…</option>
-                  {orders.map(o => (
+                  {orders.filter(o => !isGenericOrder(o) && getMyDepts(o).length > 0).map(o => (
                     <option key={o.id} value={o.id}>{o.codigo_orden}: {o.nombre_orden}</option>
                   ))}
                 </select>

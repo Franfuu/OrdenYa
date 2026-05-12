@@ -44,11 +44,6 @@ class WorkOrder extends Model
         return $this->hasMany(WorkSession::class);
     }
 
-    public function comments(): HasMany
-    {
-        return $this->hasMany(Comment::class);
-    }
-
     public function pieza(): BelongsTo
     {
         return $this->belongsTo(Pieza::class);

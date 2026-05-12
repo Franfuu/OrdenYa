@@ -12,7 +12,6 @@ import { EditIcon, DeleteIcon, CancelIcon, CheckIcon } from "../../components/Ic
 import { PRIORIDAD_META } from "./WorkOrderForm";
 import { QRCodeSVG } from "qrcode.react";
 import { useConfirm } from "../../components/ConfirmDialog";
-import { OrderComments } from "../shared/OrderComments";
 import { OrderAuditLog } from "../shared/OrderAuditLog";
 import { ImageModal } from "../../components/ImageModal";
 import { useFormFields } from '../../hooks/useFormFields';
@@ -136,6 +135,16 @@ export const WorkOrderDetail: React.FC = () => {
             <img src={storageUrl(order.imagen) ?? ''} alt="Imagen" className="wo-detail__hero-image" />
           </div>
         )}
+        <div className="wo-detail__hero-qr" title="Escanea para abrir esta orden en el móvil">
+          <div className="wo-detail__hero-qr-frame">
+            <QRCodeSVG
+              value={(order as any).qr_codigo ?? `${window.location.origin}/trabajador/ordenes/${order.id}`}
+              size={120}
+              level="M"
+            />
+          </div>
+          <span className="wo-detail__hero-qr-label">Código QR</span>
+        </div>
       </div>
 
       {/* Panel HL specs */}
@@ -259,20 +268,6 @@ export const WorkOrderDetail: React.FC = () => {
           <p className="wo-detail__obs-text">{order.observacion}</p>
         </div>
       )}
-
-      <div className="glass-card wo-detail__section" style={{ display: "flex", gap: "1.2rem", alignItems: "center" }}>
-        <div style={{ background: "#fff", padding: "0.6rem", borderRadius: 8 }}>
-          <QRCodeSVG value={(order as any).qr_codigo ?? `${window.location.origin}/trabajador/ordenes/${order.id}`} size={120} level="M" />
-        </div>
-        <div>
-          <h3 className="wo-detail__section-title" style={{ marginTop: 0 }}>Código QR de la orden</h3>
-          <p style={{ margin: 0, opacity: 0.75, fontSize: "0.85rem" }}>
-            Escanea con cualquier móvil para abrir esta orden. Ideal para etiquetar piezas físicas y consultar el detalle al instante.
-          </p>
-        </div>
-      </div>
-
-      <OrderComments orderId={order.id} />
 
       <OrderAuditLog orderId={order.id} />
 

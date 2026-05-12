@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use App\Models\AuditLog;
 use App\Models\Notification;
+use App\Events\WorkOrdersChanged;
 
 class WorkOrderController extends Controller
 {
@@ -44,6 +45,10 @@ class WorkOrderController extends Controller
             });
         } else {
             $query->where('codigo_orden', 'not like', 'GEN-%');
+            $allowedSlugs = $this->allowedDeptSlugsForUser($user);
+            if ($allowedSlugs !== null) {
+                $query->whereHas('departments.department', fn ($q) => $q->whereIn('slug', $allowedSlugs));
+            }
         }
 
         return response()->json($query->orderByDesc('created_at')->get());
@@ -61,12 +66,53 @@ class WorkOrderController extends Controller
                 return response()->json(['message' => 'No tienes acceso a esta orden.'], 403);
             }
         }
+        if ($user && $user->role === 'supervisor') {
+            $allowedSlugs = $this->allowedDeptSlugsForUser($user);
+            if ($allowedSlugs !== null) {
+                $matches = $workOrder->departments()
+                    ->whereHas('department', fn ($q) => $q->whereIn('slug', $allowedSlugs))
+                    ->exists();
+                if (! $matches) {
+                    return response()->json(['message' => 'No tienes acceso a esta orden.'], 403);
+                }
+            }
+        }
         $workOrder->load($this->orderWith());
         return response()->json($workOrder);
     }
 
+    private function allowedDeptSlugsForUser($user): ?array
+    {
+        if (! $user || $user->role !== 'supervisor') return null; // null = sin restricción
+        return match (strtolower((string) $user->departamento)) {
+            'taller'      => ['taller'],
+            'instalacion', 'instalación' => ['instalacion'],
+            'general', ''  => null, // supervisor general → ve todo
+            default       => null,
+        };
+    }
+
     public function store(Request $request): JsonResponse
     {
+        $user = $request->user();
+        $allowedSlugs = $this->allowedDeptSlugsForUser($user);
+        if ($allowedSlugs !== null) {
+            if (empty($allowedSlugs)) {
+                return response()->json(['message' => 'Tu cuenta de supervisor no tiene un departamento asignado.'], 403);
+            }
+            $reqDepts = (array) $request->input('departments', []);
+            $invalid = array_diff($reqDepts, $allowedSlugs);
+            if (! empty($invalid)) {
+                return response()->json([
+                    'message' => 'Solo puedes crear órdenes para tu departamento (' . implode(', ', $allowedSlugs) . ').',
+                ], 403);
+            }
+            if (empty($reqDepts)) {
+                // Forzar el dept del supervisor si no envió ninguno
+                $request->merge(['departments' => $allowedSlugs]);
+            }
+        }
+
         $validated = $request->validate([
             'tipo' => ['nullable', Rule::in(['HL', 'TE'])],
             'codigo_orden' => 'required|string|max:255|unique:work_orders,codigo_orden',
@@ -102,7 +148,8 @@ class WorkOrderController extends Controller
                 ->toArray();
 
             $workOrder = WorkOrder::create($orderFields);
-            $workOrder->qr_codigo = url("/admin/ordenes/ver/{$workOrder->id}");
+            $frontendUrl = rtrim(env('FRONTEND_URL', 'http://localhost:5173'), '/');
+            $workOrder->qr_codigo = "{$frontendUrl}/trabajador/ordenes/{$workOrder->id}";
             $workOrder->save();
 
             foreach (($validated['departments'] ?? []) as $deptSlug) {
@@ -113,6 +160,7 @@ class WorkOrderController extends Controller
             $this->notifyAssignedWorkers($workOrder, "Nueva orden asignada: {$workOrder->codigo_orden}");
 
             $workOrder->load($this->orderWith());
+            $this->broadcastChange('created', $workOrder->id);
 
             return response()->json($workOrder, 201);
         });
@@ -132,7 +180,8 @@ class WorkOrderController extends Controller
             $new->codigo_orden = $newCode;
             $new->qr_codigo = null;
             $new->save();
-            $new->qr_codigo = url("/admin/ordenes/ver/{$new->id}");
+            $frontendUrl = rtrim(env('FRONTEND_URL', 'http://localhost:5173'), '/');
+            $new->qr_codigo = "{$frontendUrl}/trabajador/ordenes/{$new->id}";
             $new->save();
 
             foreach ($workOrder->departments as $dept) {
@@ -149,6 +198,7 @@ class WorkOrderController extends Controller
             $this->notifyAssignedWorkers($new, "Nueva orden duplicada: {$new->codigo_orden}");
 
             $new->load($this->orderWith());
+            $this->broadcastChange('created', $new->id);
             return response()->json($new, 201);
         });
     }
@@ -173,6 +223,7 @@ class WorkOrderController extends Controller
                 AuditLog::log($userId, 'deleted', 'WorkOrder', $o->id, "Eliminada en lote: {$code}");
                 $count++;
             }
+            $this->broadcastChange('deleted');
             return response()->json(['message' => "{$count} órdenes eliminadas", 'count' => $count]);
         }
 
@@ -182,10 +233,20 @@ class WorkOrderController extends Controller
                 AuditLog::log($userId, 'updated', 'WorkOrder', $o->id, "Prioridad → {$validated['prioridad']} (lote)");
                 $count++;
             }
+            $this->broadcastChange('updated');
             return response()->json(['message' => "{$count} órdenes actualizadas", 'count' => $count]);
         }
 
         return response()->json(['message' => 'Acción no soportada'], 422);
+    }
+
+    private function broadcastChange(string $action, ?int $workOrderId = null, array $meta = []): void
+    {
+        try {
+            broadcast(new WorkOrdersChanged($action, $workOrderId, $meta));
+        } catch (\Throwable $e) {
+            \Log::warning('Broadcast WorkOrdersChanged falló: ' . $e->getMessage());
+        }
     }
 
     private function notifyAssignedWorkers(WorkOrder $workOrder, string $title): void
@@ -225,11 +286,53 @@ class WorkOrderController extends Controller
             'numero_op' => 'nullable|string|max:255',
             'observacion' => 'nullable|string',
             'hl_referencia_id' => 'nullable|integer|exists:hl_referencias,id',
+            'departments' => 'nullable|array',
+            'departments.*' => 'string|exists:departments,slug',
+            'department_phases' => 'nullable|array',
+            'department_piezas' => 'nullable|array',
+            'department_piezas.*' => 'nullable|integer|min:0',
+            'department_workers' => 'nullable|array',
         ]);
 
-        $workOrder->update($validated);
+        DB::transaction(function () use ($validated, $workOrder) {
+            $fields = collect($validated)
+                ->except(['departments', 'department_phases', 'department_piezas', 'department_workers'])
+                ->toArray();
+            $workOrder->update($fields);
+
+            if (array_key_exists('departments', $validated)) {
+                $newSlugs = $validated['departments'] ?? [];
+                $existing = $workOrder->departments()->with('department')->get();
+                $existingBySlug = $existing->keyBy(fn ($d) => $d->department?->slug);
+
+                // Remove depts no longer selected
+                foreach ($existingBySlug as $slug => $dept) {
+                    if (in_array($slug, $newSlugs, true)) continue;
+                    if ($dept->workSessions()->exists()) continue; // keep if has sessions
+                    $dept->phases()->delete();
+                    $dept->workers()->delete();
+                    $dept->delete();
+                }
+
+                // Add new depts + sync workers on existing
+                foreach ($newSlugs as $slug) {
+                    if ($existingBySlug->has($slug)) {
+                        $deptRow = $existingBySlug->get($slug);
+                        $workerIds = $validated['department_workers'][$slug] ?? [];
+                        $deptRow->workers()->whereNotIn('user_id', $workerIds)->delete();
+                        foreach ($workerIds as $uid) {
+                            $deptRow->workers()->firstOrCreate(['user_id' => $uid], ['piezas_asignadas' => 0]);
+                        }
+                    } else {
+                        $this->activateDepartment($workOrder, $slug, $validated);
+                    }
+                }
+            }
+        });
+
         AuditLog::log($request->user()?->id, 'updated', 'WorkOrder', $workOrder->id, "Orden {$workOrder->codigo_orden} actualizada");
         $workOrder->load($this->orderWith());
+        $this->broadcastChange('updated', $workOrder->id);
 
         return response()->json($workOrder);
     }
@@ -265,6 +368,7 @@ class WorkOrderController extends Controller
         $id = $workOrder->id;
         $workOrder->delete();
         AuditLog::log(request()->user()?->id, 'deleted', 'WorkOrder', $id, "Orden {$code} eliminada");
+        $this->broadcastChange('deleted', $id);
 
         return response()->json(null, 204);
     }
@@ -478,6 +582,7 @@ class WorkOrderController extends Controller
         });
 
         $workOrder->load($this->orderWith());
+        $this->broadcastChange('finalized', $workOrder->id);
 
         return response()->json(['message' => 'Departamento finalizado', 'work_order' => $workOrder]);
     }
@@ -682,13 +787,87 @@ class WorkOrderController extends Controller
             $this->recordPieces($session, $target->id, $piezasReq);
         }
 
+        try {
+            $this->maybeNotifySupervisorOnCompletion($workOrder->id, $session->work_order_department_id, $target->id);
+        } catch (\Throwable $e) {
+            \Log::warning('Fallo notificando supervisor de cuota completa: ' . $e->getMessage());
+        }
+
         $workOrder->load($this->orderWith());
+        $this->broadcastChange('session', $workOrder->id, ['type' => 'stop', 'user_id' => $target->id]);
 
         return response()->json([
             'message' => 'Sesión finalizada',
             'session' => $session,
             'work_order' => $workOrder,
         ]);
+    }
+
+    private function maybeNotifySupervisorOnCompletion(int $workOrderId, ?int $deptId, int $workerId): void
+    {
+        if (! $deptId) return;
+
+        $worker = WorkOrderDepartmentWorker::where('work_order_department_id', $deptId)
+            ->where('user_id', $workerId)->first();
+        if (! $worker || $worker->approved_at) return;
+
+        $cuota = (int) $worker->piezas_asignadas;
+        if ($cuota <= 0) return;
+
+        $hechas = (int) $worker->piezas_completadas; // accessor
+        if ($hechas < $cuota) return;
+
+        $dept = WorkOrderDepartment::with(['department', 'workOrder'])->find($deptId);
+        if (! $dept) return;
+
+        $deptSlug = $dept->department?->slug;          // taller / instalacion
+        $deptName = $dept->department?->name;          // Taller / Instalación
+        $orderCode = $dept->workOrder?->codigo_orden;
+        $orderName = $dept->workOrder?->nombre_orden;
+        $workerUser = User::find($workerId);
+        if (! $workerUser) return;
+
+        // Supervisores cuyo departamento global encaja con el slug
+        $matchValues = match ($deptSlug) {
+            'taller'      => ['Taller'],
+            'instalacion' => ['Instalacion', 'Instalación'],
+            default       => [],
+        };
+        if (empty($matchValues)) return;
+
+        $supervisors = User::where('role', 'supervisor')
+            ->whereIn('departamento', $matchValues)
+            ->get();
+        if ($supervisors->isEmpty()) return;
+
+        foreach ($supervisors as $sup) {
+            // Evitar duplicados pendientes
+            $exists = Notification::where('user_id', $sup->id)
+                ->where('type', 'worker_completion_approval')
+                ->whereNull('acted_at')
+                ->where('data->work_order_department_worker_id', $worker->id)
+                ->exists();
+            if ($exists) continue;
+
+            Notification::create([
+                'user_id' => $sup->id,
+                'type' => 'worker_completion_approval',
+                'title' => "{$workerUser->name} ha completado su cuota",
+                'body'  => "{$orderCode} · {$deptName} · {$cuota} piezas",
+                'link'  => "/supervisor/ordenes/ver/{$workOrderId}",
+                'data'  => [
+                    'work_order_department_worker_id' => $worker->id,
+                    'work_order_id' => $workOrderId,
+                    'work_order_department_id' => $deptId,
+                    'worker_user_id' => $workerId,
+                    'worker_name' => $workerUser->name,
+                    'codigo_orden' => $orderCode,
+                    'nombre_orden' => $orderName,
+                    'departamento' => $deptName,
+                    'piezas' => $cuota,
+                ],
+            ]);
+        }
     }
 
     private function parseSessionDateTime(string $date, string $time): string

@@ -7,14 +7,6 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void
     {
-        Schema::create('comments', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('work_order_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
-            $table->text('body');
-            $table->timestamps();
-        });
-
         Schema::create('audit_logs', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();
@@ -40,6 +32,5 @@ return new class extends Migration {
     {
         Schema::dropIfExists('notifications');
         Schema::dropIfExists('audit_logs');
-        Schema::dropIfExists('comments');
     }
 };

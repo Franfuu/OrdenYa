@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { sileo } from "sileo";
-import { showHttpError } from "../../utils/errorHelper";
+import { showHttpError, getErrorMessage } from "../../utils/errorHelper";
 import { workOrderService } from "../../services/workOrderService";
 import { userService } from "../../services/userService";
 import { http } from "../../services/http";
+import { useAuth } from "../../auth/authContext";
 import { Spinner } from "../../components/Spinner";
 import type { DepartmentSlug } from "../../types/WorkOrder";
 import { SaveIcon, CancelIcon, WorkOrderIcon } from "../../components/Icons";
@@ -56,16 +57,30 @@ export const WorkOrderForm: React.FC = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id?: string }>();
   const isEditing = Boolean(id);
+  const { user } = useAuth();
+
+  const allowedDeptSlugs = useMemo<DepartmentSlug[] | null>(() => {
+    if (user?.role !== 'supervisor') return null; // null = todos
+    const d = (user?.departamento ?? '').toLowerCase();
+    if (d === 'taller') return ['taller'];
+    if (d === 'instalacion' || d === 'instalación') return ['instalacion'];
+    return [];
+  }, [user]);
+
+  const visibleDepts = useMemo(
+    () => allowedDeptSlugs ? DEPT_OPTIONS.filter(d => allowedDeptSlugs.includes(d.slug)) : DEPT_OPTIONS,
+    [allowedDeptSlugs]
+  );
 
   const [formData, setFormData] = useState<FormData>(initial);
   const [loading, setLoading] = useState(false);
   const [fetchLoading, setFetchLoading] = useState(true);
-  const [workers, setWorkers] = useState<{ id: number; name: string }[]>([]);
+  const [workers, setWorkers] = useState<{ id: number; name: string; departamento?: string | null }[]>([]);
   const [piezas, setPiezas] = useState<{ id: number; codigo: string; nombre: string }[]>([]);
 
   useEffect(() => {
     userService.getUsers()
-      .then((list: any) => setWorkers(list.flatMap((u: any) => u.role === 'trabajador' ? [{ id: u.id, name: u.name }] : [])))
+      .then((list: any) => setWorkers(list.flatMap((u: any) => u.role === 'trabajador' ? [{ id: u.id, name: u.name, departamento: u.departamento ?? null }] : [])))
       .catch(() => setWorkers([]));
     http.get<any[]>("/piezas")
       .then(r => setPiezas(r.data))
@@ -83,7 +98,14 @@ export const WorkOrderForm: React.FC = () => {
           .filter(n => Number.isFinite(n))
           .reduce((a, b) => Math.max(a, b), 0);
         const next = String(max + 1).padStart(4, "0");
-        setFormData(prev => prev.codigo_orden ? prev : { ...prev, codigo_orden: `${prefix}${next}` });
+        setFormData(prev => ({
+          ...prev,
+          codigo_orden: prev.codigo_orden || `${prefix}${next}`,
+          // Si el usuario es supervisor, preselecciona su departamento
+          departments: prev.departments.length > 0
+            ? prev.departments
+            : (allowedDeptSlugs && allowedDeptSlugs.length === 1 ? [allowedDeptSlugs[0]] : prev.departments),
+        }));
         setFetchLoading(false);
       }).catch(() => setFetchLoading(false));
     }
@@ -137,7 +159,7 @@ export const WorkOrderForm: React.FC = () => {
       return;
     }
     if (formData.departments.length === 0) {
-      sileo.error("Selecciona al menos un departamento");
+      sileo.error({ title: "Selecciona al menos un departamento" });
       return;
     }
 
@@ -159,22 +181,15 @@ export const WorkOrderForm: React.FC = () => {
 
       if (isEditing && id) {
         await workOrderService.update(Number(id), payload);
-        sileo.success("Orden actualizada");
+        sileo.success({ title: "Orden actualizada" });
       } else {
         await workOrderService.create(payload);
-        sileo.success("Orden creada");
+        sileo.success({ title: "Orden creada" });
       }
       const basePath = window.location.pathname.startsWith("/supervisor") ? "/supervisor" : "/admin";
       navigate(`${basePath}/ordenes/lista`);
     } catch (err: any) {
-      const errors = err?.response?.data?.errors;
-      if (errors && typeof errors === "object") {
-        const first = Object.values(errors)[0] as string[];
-        sileo.error({ title: "No se pudo guardar", description: first?.[0] || "Revisa los campos." });
-      } else {
-        const msg = err?.response?.data?.message || "No se pudo guardar la orden.";
-        sileo.error({ title: "Error al guardar", description: msg });
-      }
+      showHttpError(err, isEditing ? "No se pudo actualizar la orden" : "No se pudo crear la orden");
     } finally {
       setLoading(false);
     }
@@ -262,9 +277,22 @@ export const WorkOrderForm: React.FC = () => {
 
         <section className="wo-form__section">
           <h3 className="wo-form__section-title">Departamentos y trabajadores</h3>
-          {DEPT_OPTIONS.map(d => {
+          {allowedDeptSlugs && (
+            <p style={{ fontSize: "0.83rem", color: "var(--text-secondary)", margin: "0 0 0.5rem" }}>
+              Como supervisor solo puedes asignar el departamento <strong>{visibleDepts.map(d => d.label).join(", ") || "—"}</strong>.
+            </p>
+          )}
+          {visibleDepts.map(d => {
             const checked = formData.departments.includes(d.slug);
             const assigned = formData.department_workers[d.slug] ?? [];
+            // Filtrar trabajadores cuyo dept global encaja con este dept
+            const deptWorkers = workers.filter(w => {
+              const wd = (w.departamento ?? "").toLowerCase();
+              if (!wd || wd === "general") return true;
+              if (d.slug === "taller") return wd === "taller";
+              if (d.slug === "instalacion") return wd === "instalacion" || wd === "instalación";
+              return false;
+            });
             return (
               <div key={d.slug} className={`wo-form__dept ${checked ? "wo-form__dept--checked" : ""}`}>
                 <label className="wo-form__dept-toggle">
@@ -274,11 +302,11 @@ export const WorkOrderForm: React.FC = () => {
                 {checked && (
                   <div className="wo-form__dept-workers">
                     <span className="wo-form__dept-workers-label">Trabajadores asignados</span>
-                    {workers.length === 0 ? (
-                      <span className="wo-form__worker-empty">No hay trabajadores disponibles.</span>
+                    {deptWorkers.length === 0 ? (
+                      <span className="wo-form__worker-empty">No hay trabajadores del departamento {d.label}.</span>
                     ) : (
                       <div className="wo-form__dept-workers-grid">
-                        {workers.map(w => {
+                        {deptWorkers.map(w => {
                           const isOn = assigned.includes(w.id);
                           return (
                             <label key={w.id} className={`wo-form__worker-chip ${isOn ? "wo-form__worker-chip--checked" : ""}`}>

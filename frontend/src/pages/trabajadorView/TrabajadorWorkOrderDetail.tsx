@@ -70,10 +70,17 @@ export const TrabajadorWorkOrderDetail: React.FC = () => {
     return () => clearInterval(interval);
   }, [activeSession]);
 
-  // My dept assignments
+  // My dept assignments (filtered by user's global departamento)
+  const userDeptSlug = (() => {
+    const d = (user?.departamento ?? "").toLowerCase();
+    if (d === "taller") return "taller";
+    if (d === "instalacion" || d === "instalación") return "instalacion";
+    return null; // General → both
+  })();
   const myDepts = (order?.departments ?? []).filter(dept =>
     !dept.finalizado_at &&
-    (dept.workers ?? []).some(w => w.user_id === user?.id)
+    (!userDeptSlug || dept.department?.slug === userDeptSlug) &&
+    (dept.workers ?? []).some(w => w.user_id === user?.id && !w.approved_at)
   );
 
   const workerVisibleCustomFields = fields.filter(f => f.visible_to_worker && !f.is_base_field);

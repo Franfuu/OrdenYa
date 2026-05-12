@@ -68,6 +68,7 @@ export const AdminDashboard: React.FC = () => {
 
             <Route path="piezas/lista"          element={<PiezasList />} />
             <Route path="piezas/nueva"          element={<PiezaForm />} />
+            <Route path="piezas/nuevo"          element={<Navigate to="/admin/piezas/nueva" replace />} />
             <Route path="piezas/editar/:id"     element={<PiezaForm />} />
 
             <Route path="perfil"                element={<Profile />} />

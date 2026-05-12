@@ -85,6 +85,30 @@
   box-shadow: 0 4px 14px rgba(0,0,0,0.08);
 }
 
+/* Hero QR */
+.wo-detail__hero-qr {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+}
+.wo-detail__hero-qr-frame {
+  background: #fff;
+  padding: 0.5rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+  display: flex;
+}
+.wo-detail__hero-qr-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-secondary, #94a3b8);
+}
+
 /* ── Body: 2 cols ───────────────────────── */
 .wo-detail__body {
   display: grid;
@@ -218,6 +242,7 @@
 
 @media (max-width: 720px) {
   .wo-detail__body { grid-template-columns: 1fr; }
-  .wo-detail__hero-card { flex-direction: column; }
+  .wo-detail__hero-card { flex-direction: column; align-items: stretch; }
   .wo-detail__hero-image { width: 100%; height: 200px; }
+  .wo-detail__hero-qr { align-self: center; }
 }

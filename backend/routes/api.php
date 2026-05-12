@@ -2,12 +2,16 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\AuditLogController;
-use App\Http\Controllers\CommentController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PiezaController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\WorkOrderController;
+use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Route;
+
+// Reverb / broadcasting auth bajo /api con Sanctum
+// (routes/api.php ya viene prefijado con /api; no añadimos doble prefijo)
+Broadcast::routes(['middleware' => ['auth:sanctum']]);
 
 Route::post('/auth/login', [AuthController::class, 'login'])->middleware('throttle:10,1');
 
@@ -20,13 +24,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/users/{user}/stats', [UserController::class, 'stats']);
     Route::get('/users/{user}/orders/{workOrder}/sessions', [UserController::class, 'orderSessions']);
 
-    // Comentarios + Audit + Notificaciones
-    Route::get('work-orders/{workOrder}/comments', [CommentController::class, 'index']);
-    Route::post('work-orders/{workOrder}/comments', [CommentController::class, 'store']);
-    Route::delete('comments/{comment}', [CommentController::class, 'destroy']);
+    // Audit + Notificaciones
     Route::get('work-orders/{workOrder}/audit', [AuditLogController::class, 'forOrder']);
     Route::get('notifications', [NotificationController::class, 'index']);
     Route::post('notifications/mark-all-read', [NotificationController::class, 'markAllRead']);
+    Route::post('notifications/{notification}/approve', [NotificationController::class, 'approve']);
 
     // Read: all roles
     Route::middleware('role:admin,supervisor,trabajador')->group(function () {
@@ -55,22 +57,24 @@ Route::middleware('auth:sanctum')->group(function () {
     // Finalizar departamento — admin + supervisor (cierre operativo de fases)
     Route::middleware('role:admin,supervisor')->group(function () {
         Route::post('work-orders/{workOrder}/finalize-department', [WorkOrderController::class, 'finalizeDepartment']);
+
+        // Crear órdenes (supervisor: restringido a su departamento — validado en controlador)
+        Route::post('work-orders', [WorkOrderController::class, 'store']);
+
+        // Catálogo de piezas (CRUD) — supervisor + admin
+        Route::post('piezas', [PiezaController::class, 'store']);
+        Route::put('piezas/{pieza}', [PiezaController::class, 'update']);
+        Route::delete('piezas/{pieza}', [PiezaController::class, 'destroy']);
     });
 
-    // ── ADMIN ONLY: gestión completa de órdenes, piezas y usuarios ──
+    // ── ADMIN ONLY: gestión completa de órdenes y usuarios ──
     Route::middleware('role:admin')->group(function () {
-        // Órdenes (crear, editar, eliminar, duplicar, lote, foto)
-        Route::post('work-orders', [WorkOrderController::class, 'store']);
+        // Órdenes (editar, eliminar, duplicar, lote, foto)
         Route::put('work-orders/{workOrder}', [WorkOrderController::class, 'update']);
         Route::delete('work-orders/{workOrder}', [WorkOrderController::class, 'destroy']);
         Route::post('work-orders/{workOrder}/duplicate', [WorkOrderController::class, 'duplicate']);
         Route::post('work-orders/bulk', [WorkOrderController::class, 'bulkAction']);
         Route::post('work-orders/{workOrder}/upload-image', [WorkOrderController::class, 'uploadImage']);
-
-        // Catálogo de piezas (CRUD)
-        Route::post('piezas', [PiezaController::class, 'store']);
-        Route::put('piezas/{pieza}', [PiezaController::class, 'update']);
-        Route::delete('piezas/{pieza}', [PiezaController::class, 'destroy']);
 
         // Usuarios (CRUD)
         Route::post('users', [UserController::class, 'store']);

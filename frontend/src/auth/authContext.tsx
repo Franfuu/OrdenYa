@@ -1,6 +1,7 @@
 import { createContext, use, useEffect, useMemo, useState } from "react";
 import type { User } from "../types/Auth";
 import { authService } from "../services/authService";
+import { disconnectEcho } from "../services/echo";
 
 type AuthContextValue = {
     user: User | null;
@@ -50,6 +51,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     function logout() {
         clearSessionFlag();
+        disconnectEcho();
         authService.logout().finally(() => {
             setUser(null);
             window.location.assign('/login');

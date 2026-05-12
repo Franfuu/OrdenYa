@@ -16,6 +16,7 @@ import { useConfirm } from "../../components/ConfirmDialog";
 import "./WorkOrderFormBrand.css";
 import { getErrorMessage } from "../../utils/errorHelper";
 import { ImageModal } from "../../components/ImageModal";
+import { useWorkOrdersChannel } from "../../hooks/useWorkOrdersChannel";
 import "./WorkOrdersManager.css";
 
 const DEPT_COLORS: Record<string, string> = {
@@ -53,7 +54,9 @@ export const WorkOrdersList: React.FC = () => {
   const { user } = useAuth();
   const role = (user as any)?.role;
   const basePath = role === "supervisor" ? "/supervisor" : "/admin";
-  const isReadOnly = role === "supervisor"; // supervisor sólo lectura en órdenes
+  // Supervisor: puede crear órdenes pero NO editar/eliminar/duplicar existentes
+  const isReadOnly = role !== "admin" && role !== "supervisor";
+  const canModifyExisting = role === "admin";
   const confirm = useConfirm();
 
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
@@ -82,6 +85,17 @@ export const WorkOrdersList: React.FC = () => {
   };
 
   useEffect(() => { fetchOrders(); }, [locationKey]);
+
+  // ESC closes QR preview modal
+  useEffect(() => {
+    if (!qrPreview) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setQrPreview(null); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [qrPreview]);
+
+  // Live: refetch al recibir cambios por WebSocket
+  useWorkOrdersChannel(() => { fetchOrders(); });
   useEffect(() => { setCurrentPage(1); }, [searchTerm, filterStatus, sortKey]);
 
   const handleDelete = async (e: React.MouseEvent, id: number) => {
@@ -183,10 +197,10 @@ export const WorkOrdersList: React.FC = () => {
   }, [workOrders, searchTerm, filterStatus, sortKey, sortDir]);
 
   const stats = useMemo(() => ({
-    total: filteredOrders.length,
-    enCurso: filteredOrders.filter(o => !isOrderFinalizada(o)).length,
-    finalizadas: filteredOrders.filter(o => isOrderFinalizada(o)).length,
-  }), [filteredOrders]);
+    total: workOrders.length,
+    enCurso: workOrders.filter(o => !isOrderFinalizada(o)).length,
+    finalizadas: workOrders.filter(o => isOrderFinalizada(o)).length,
+  }), [workOrders]);
 
   const totalPages = Math.max(1, Math.ceil(filteredOrders.length / PAGE_SIZE));
   const paginated = filteredOrders.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
@@ -353,7 +367,7 @@ export const WorkOrdersList: React.FC = () => {
             <table className="modern-table work-orders-manager__table--hoverable">
               <thead>
                 <tr>
-                  {!isReadOnly && (
+                  {canModifyExisting && (
                     <th style={{ width: 36 }}>
                       <input type="checkbox" className="brand-check"
                         ref={el => {
@@ -396,7 +410,7 @@ export const WorkOrdersList: React.FC = () => {
                       className="work-orders-manager__row--clickable"
                       onClick={() => navigate(`${basePath}/ordenes/ver/${o.id}`)}
                     >
-                      {!isReadOnly && (
+                      {canModifyExisting && (
                         <td onClick={e => e.stopPropagation()}>
                           <input type="checkbox" className="brand-check"
                             checked={selectedIds.has(o.id)}
@@ -459,7 +473,7 @@ export const WorkOrdersList: React.FC = () => {
                       </td>
                       <td className="work-orders-manager__actions-cell" onClick={e => e.stopPropagation()}>
                         <div className="work-orders-manager__actions-flex">
-                          {!isReadOnly && (
+                          {canModifyExisting && (
                             <button
                               onClick={() => navigate(`${basePath}/ordenes/editar/${o.id}`)}
                               className="btn-primary work-orders-manager__btn-sm"
@@ -467,7 +481,7 @@ export const WorkOrdersList: React.FC = () => {
                               <EditIcon size={14} color="white" /> Editar
                             </button>
                           )}
-                          {!isReadOnly && (
+                          {canModifyExisting && (
                             <button
                               onClick={(e) => handleDuplicate(e, o.id)}
                               className="btn-outline work-orders-manager__btn-sm"
@@ -479,7 +493,7 @@ export const WorkOrdersList: React.FC = () => {
                               </svg>
                             </button>
                           )}
-                          {!isReadOnly && (
+                          {canModifyExisting && (
                             <button
                               onClick={(e) => handleDelete(e, o.id)}
                               className="btn-danger work-orders-manager__btn-sm"
@@ -494,7 +508,7 @@ export const WorkOrdersList: React.FC = () => {
                 })}
                 {filteredOrders.length === 0 && (
                   <tr>
-                    <td colSpan={isReadOnly ? 6 : 7} className="work-orders-manager__empty">No se encontraron órdenes.</td>
+                    <td colSpan={canModifyExisting ? 7 : 6} className="work-orders-manager__empty">No se encontraron órdenes.</td>
                   </tr>
                 )}
               </tbody>

@@ -250,8 +250,10 @@ OrdenYa/
 5. En el **detalle** de cada orden ves: badge prioridad, **código QR escaneable** (preview en modal), comentarios, historial de cambios (audit log) e historial de sesiones.
 
 ### Como **Supervisor**
-- Vista de **sólo lectura** sobre órdenes y piezas (KPIs + listas).
-- No puede crear/editar/eliminar órdenes ni piezas ni usuarios.
+- Ve KPIs y todas las órdenes (lectura) + puede **crear órdenes nuevas** restringidas a su departamento global (Taller / Instalación).
+- CRUD completo de **piezas**.
+- Recibe **notificaciones en vivo** cuando un trabajador de su departamento completa su cuota y puede aprobarla con un click — el trabajador deja de ver la orden al instante.
+- No puede editar/eliminar órdenes existentes ni gestionar usuarios.
 
 ### Como **Trabajador**
 1. Ve **sólo sus órdenes asignadas** (filtrado en backend).
@@ -261,6 +263,41 @@ OrdenYa/
 5. **Cronómetro flotante** abajo a la derecha mientras hay sesión activa, persiste entre páginas.
 6. **Mi Diario** con resumen del día.
 7. Notificaciones in-app cuando le asignan una nueva orden.
+
+---
+
+## ⚡ Tiempo real (WebSockets · Laravel Reverb)
+
+La app actualiza vistas e infos **al instante**, sin recargar y sin polling agresivo:
+
+- 🔔 **Notificaciones push**: cuando un trabajador completa su cuota se crea una notificación al supervisor y le aparece en la campana sin refrescar. El supervisor pulsa **Aprobar** → la orden desaparece de la lista del trabajador en tiempo real.
+- 📋 **Lista de órdenes viva**: crear/editar/duplicar/eliminar una orden, finalizar departamento o terminar una sesión emite un evento; cualquier admin/supervisor/trabajador con la lista abierta la ve refrescada automáticamente.
+- 🟢 **Stack**: [Laravel Reverb](https://reverb.laravel.com/) (servidor WebSocket nativo de Laravel 12) + [`laravel-echo`](https://laravel.com/docs/12.x/broadcasting#client-side-installation) + `pusher-js` en el frontend.
+- 🔒 **Canales privados** autenticados con Sanctum (`/api/broadcasting/auth`) — solo el dueño ve su canal `App.Models.User.{id}`. Canal público `work-orders` para señales de cambio.
+- 🪶 **Fail-safe**: si Reverb cae, el polling de fondo (cada 60 s) sigue manteniendo los datos al día. Cero pantallas rotas.
+
+### Arrancar Reverb en local
+```bash
+cd backend
+php artisan reverb:start         # WebSocket server en localhost:8080
+```
+Necesitas **3 terminales**: `php artisan serve` (API), `php artisan reverb:start` (WS), `npm run dev` (front).
+
+Variables relevantes (ya rellenadas por `reverb:install`):
+```env
+# backend/.env
+BROADCAST_CONNECTION=reverb
+REVERB_APP_KEY=...
+REVERB_HOST=localhost
+REVERB_PORT=8080
+REVERB_SCHEME=http
+
+# frontend/.env
+VITE_REVERB_APP_KEY=...
+VITE_REVERB_HOST=localhost
+VITE_REVERB_PORT=8080
+VITE_REVERB_SCHEME=http
+```
 
 ---
 
@@ -276,7 +313,8 @@ OrdenYa/
 - ✅ Piezas en uso por órdenes no se pueden eliminar
 - ✅ Sanitización `strip_tags` en notas de sesiones
 - ✅ Mensajes de error de validación en español
-- ✅ Supervisor sin permisos de mutación sobre órdenes/piezas/usuarios
+- ✅ Supervisor restringido a crear órdenes solo en su departamento global (validado en backend)
+- ✅ Canales privados Reverb autenticados con Sanctum
 
 ---
 
@@ -324,6 +362,7 @@ npm run lint     # eslint
 
 - [ ] MySQL arrancado en XAMPP
 - [ ] `php artisan serve` en una terminal (deja la ventana abierta)
+- [ ] `php artisan reverb:start` en otra terminal (WebSockets — tiempo real)
 - [ ] `npm run dev` en otra terminal
 - [ ] Login `admin@admin.com` / `admin123`
 - [ ] Recorrer: Panel de Control → Lista de Órdenes → Detalle (mostrar QR + comentarios + audit) → Crear Orden → Gestión de Usuarios

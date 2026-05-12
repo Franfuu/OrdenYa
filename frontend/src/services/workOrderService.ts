@@ -149,10 +149,10 @@ export const workOrderService = {
         piezas: number;
         notas?: string;
     }): Promise<{ message: string; session: WorkSession }> {
-        return http.put<{ message: string; session: WorkSession }>(`${API_BASE_URL}/work-sessions/${sessionId}`, data).then(r => r.data);
+        return http.put<{ message: string; session: WorkSession }>(`/work-sessions/${sessionId}`, data).then(r => r.data);
     },
 
     getSessionsForUser(userId: number, date?: string): Promise<WorkSession[]> {
-        return http.get<WorkSession[]>(`${API_BASE_URL}/users/${userId}/sessions`, { params: { date } }).then(r => r.data);
+        return http.get<WorkSession[]>(`/users/${userId}/sessions`, { params: { date } }).then(r => r.data);
     },
 };

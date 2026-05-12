@@ -1,15 +1,14 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { QRCodeSVG } from "qrcode.react";
 import { useAuth } from "../../auth/authContext";
-import { storageUrl } from "../../utils/storageUrl";
 import { workOrderService } from "../../services/workOrderService";
 import { Spinner } from "../../components/Spinner";
 import { StatsGrid } from "../../components/StatsGrid";
 import { FilterBar } from "../../components/FilterBar";
-import { ImageIcon } from "../../components/Icons";
-import { ImageModal } from "../../components/ImageModal";
 import type { WorkOrder } from "../../types/WorkOrder";
 import { isOrderFinalizada } from "../../types/WorkOrder";
+import { useWorkOrdersChannel } from "../../hooks/useWorkOrdersChannel";
 import "../adminView/WorkOrdersManager.css";
 
 const DEPT_COLORS: Record<string, string> = {
@@ -48,25 +47,34 @@ export const TrabajadorWorkOrdersList: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("Todos");
-  const [selectedImage, setSelectedImage] = useState<{ src: string; alt: string } | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+
+  const userDeptSlug = (() => {
+    const d = (user?.departamento ?? "").toLowerCase();
+    if (d === "taller") return "taller";
+    if (d === "instalacion" || d === "instalación") return "instalacion";
+    return null; // General or none → all
+  })();
+  const deptMatches = (slug: string) => !userDeptSlug || slug === userDeptSlug;
   const [sortKey, setSortKey] = useState<SortKey>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
 
-  useEffect(() => {
-    (async () => {
-      try {
-        setLoading(true);
-        const res = await workOrderService.getAll();
-        setWorkOrders(Array.isArray(res) ? res : ((res as any).data || []));
-        setError(null);
-      } catch (err: any) {
-        setError(err.response?.data?.message || err.message || "Error al obtener órdenes");
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, []);
+  const reload = async (showSpinner = true) => {
+    try {
+      if (showSpinner) setLoading(true);
+      const res = await workOrderService.getAll();
+      setWorkOrders(Array.isArray(res) ? res : ((res as any).data || []));
+      setError(null);
+    } catch (err: any) {
+      setError(err.response?.data?.message || err.message || "Error al obtener órdenes");
+    } finally {
+      if (showSpinner) setLoading(false);
+    }
+  };
+
+  useEffect(() => { reload(true); }, []);
+
+  useWorkOrdersChannel(() => { reload(false); });
 
   useEffect(() => { setCurrentPage(1); }, [searchTerm, filterStatus, sortKey]);
 
@@ -90,7 +98,12 @@ export const TrabajadorWorkOrdersList: React.FC = () => {
         o.nombre_cliente, o.numero_pedido?.toString(), o.modelo,
       ].some(v => v && norm(v).includes(q));
 
-      return matchStatus && matchSearch;
+      const matchDept = (o.departments ?? []).some(d =>
+        deptMatches(d.department?.slug ?? "") &&
+        (d.workers ?? []).some(w => w.user_id === user?.id && !w.approved_at)
+      );
+
+      return matchStatus && matchSearch && matchDept;
     });
 
     if (sortKey) {
@@ -158,16 +171,13 @@ export const TrabajadorWorkOrdersList: React.FC = () => {
           />
 
           <div className="table-container">
-            {selectedImage && (
-              <ImageModal src={selectedImage.src} alt={selectedImage.alt} onClose={() => setSelectedImage(null)} />
-            )}
             <table className="modern-table work-orders-manager__table--hoverable">
               <thead>
                 <tr>
                   <th className="sortable-th" onClick={() => handleSort("codigo_orden")}>
                     Código <SortIndicator col="codigo_orden" sortKey={sortKey} sortDir={sortDir} />
                   </th>
-                  <th>Foto</th>
+                  <th>QR</th>
                   <th className="sortable-th" onClick={() => handleSort("nombre_orden")}>
                     Nombre <SortIndicator col="nombre_orden" sortKey={sortKey} sortDir={sortDir} />
                   </th>
@@ -184,8 +194,10 @@ export const TrabajadorWorkOrdersList: React.FC = () => {
                   const finalizada = isOrderFinalizada(o);
                   const deadline = getDeadlineBadge(o.fecha_fin);
                   const myDepts = (o.departments ?? []).filter(d =>
-                    (d.workers ?? []).some(w => w.user_id === user?.id)
+                    deptMatches(d.department?.slug ?? "") &&
+                    (d.workers ?? []).some(w => w.user_id === user?.id && !w.approved_at)
                   );
+                  const qrValue = (o as any).qr_codigo ?? `${window.location.origin}/trabajador/ordenes/${o.id}`;
                   return (
                     <tr
                       key={o.id}
@@ -194,18 +206,17 @@ export const TrabajadorWorkOrdersList: React.FC = () => {
                     >
                       <td className="work-orders-manager__code">{o.codigo_orden}</td>
                       <td onClick={e => e.stopPropagation()}>
-                        {o.imagen ? (
-                          <div className="work-orders-manager__thumbnail-wrap"
-                            role="button"
-                            tabIndex={0}
-                            onClick={() => setSelectedImage({ src: storageUrl(o.imagen)!, alt: o.nombre_orden })}
-                            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setSelectedImage({ src: storageUrl(o.imagen)!, alt: o.nombre_orden }); }}
-                          >
-                            <img src={storageUrl(o.imagen) ?? ''} alt="Miniatura" className="work-orders-manager__thumbnail" />
-                          </div>
-                        ) : (
-                          <div className="work-orders-manager__no-image"><ImageIcon size={16} color="#ccc" /></div>
-                        )}
+                        <div
+                          title={`QR: ${o.codigo_orden}`}
+                          style={{
+                            width: 48, height: 48, padding: 4,
+                            background: "#fff", borderRadius: 8,
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            border: "1px solid var(--border-color)",
+                          }}
+                        >
+                          <QRCodeSVG value={qrValue} size={40} level="M" />
+                        </div>
                       </td>
                       <td><strong>{o.nombre_orden}</strong></td>
                       <td>{o.modelo || "Sin modelo"}</td>

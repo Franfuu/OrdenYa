@@ -27,7 +27,7 @@ export const PiezasList: React.FC = () => {
   const { user } = useAuth();
   const role = (user as any)?.role;
   const basePath = role === "supervisor" ? "/supervisor" : "/admin";
-  const isReadOnly = role === "supervisor";
+  const isReadOnly = role !== "admin" && role !== "supervisor";
   const confirm = useConfirm();
 
   const [piezas, setPiezas] = useState<Pieza[]>([]);
@@ -47,7 +47,7 @@ export const PiezasList: React.FC = () => {
 
   const handleDelete = async (e: React.MouseEvent, id: number, codigo: string) => {
     e.stopPropagation();
-    if (!await confirm({ message: `¿Eliminar la pieza ${codigo}? Las órdenes que la usen quedarán sin pieza asignada.`, danger: true, confirmText: "Eliminar" })) return;
+    if (!await confirm({ message: `¿Eliminar la pieza ${codigo}? No se podrá eliminar si está en uso por alguna orden.`, danger: true, confirmText: "Eliminar" })) return;
     try {
       await http.delete(`/piezas/${id}`);
       sileo.success({ title: "Pieza eliminada" });

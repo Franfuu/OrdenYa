@@ -1,0 +1,177 @@
+.notfound {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 56px 24px;
+  background:
+    radial-gradient(circle at 18% 22%, rgba(239,159,39,0.18) 0%, transparent 38%),
+    radial-gradient(circle at 82% 78%, rgba(83,74,183,0.45) 0%, transparent 50%),
+    radial-gradient(circle at 50% 50%, rgba(38,33,92,0.6) 0%, transparent 70%),
+    linear-gradient(140deg, #1a1640 0%, #26215C 45%, #0b0a1d 100%);
+  color: #fff;
+  overflow: hidden;
+  text-align: center;
+}
+
+.notfound::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 50%, black 40%, transparent 100%);
+  -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 50%, black 40%, transparent 100%);
+  z-index: 0;
+  pointer-events: none;
+}
+
+.notfound__orb {
+  position: absolute;
+  width: 480px; height: 480px;
+  border-radius: 50%;
+  filter: blur(80px);
+  z-index: 0;
+  pointer-events: none;
+  animation: nfOrbDrift 16s ease-in-out infinite;
+}
+.notfound__orb--amber {
+  background: radial-gradient(circle, rgba(239,159,39,0.45) 0%, transparent 70%);
+  top: -120px; right: -120px;
+}
+.notfound__orb--violet {
+  background: radial-gradient(circle, rgba(83,74,183,0.55) 0%, transparent 70%);
+  bottom: -180px; left: -140px;
+  animation-delay: -8s;
+}
+@keyframes nfOrbDrift {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(-30px, 40px); }
+}
+
+.notfound__brand {
+  position: relative;
+  z-index: 2;
+  margin-bottom: 40px;
+}
+
+.notfound__content {
+  position: relative;
+  z-index: 2;
+  max-width: 560px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  animation: nfRise 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes nfRise {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.notfound__eyebrow {
+  display: inline-block;
+  padding: 4px 12px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: #EF9F27;
+  background: rgba(239, 159, 39, 0.12);
+  border: 1px solid rgba(239, 159, 39, 0.35);
+  border-radius: 999px;
+}
+
+.notfound__code {
+  font-size: clamp(6rem, 18vw, 11rem);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  margin: 8px 0;
+  background: linear-gradient(135deg, #ffffff 0%, #d8d2ff 50%, #EF9F27 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: 0 8px 40px rgba(83, 74, 183, 0.35);
+}
+
+.notfound__zero {
+  display: inline-block;
+  animation: nfPulse 3s ease-in-out infinite;
+  background: linear-gradient(135deg, #ffffff 0%, #d8d2ff 50%, #EF9F27 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+@keyframes nfPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.06); }
+}
+
+.notfound__title {
+  font-size: clamp(1.4rem, 3vw, 1.9rem);
+  font-weight: 700;
+  margin: 0;
+}
+
+.notfound__sub {
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.72);
+  line-height: 1.55;
+  max-width: 440px;
+  margin: 0 0 8px;
+}
+
+.notfound__actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 12px;
+}
+
+.notfound__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 22px;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: transform 0.15s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.notfound__btn--primary {
+  color: #1a1640;
+  background: linear-gradient(135deg, #EF9F27 0%, #ffb84d 100%);
+  box-shadow: 0 8px 24px rgba(239, 159, 39, 0.35);
+}
+.notfound__btn--primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px rgba(239, 159, 39, 0.45);
+}
+
+.notfound__btn--ghost {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.16);
+}
+.notfound__btn--ghost:hover {
+  background: rgba(255, 255, 255, 0.12);
+  transform: translateY(-2px);
+}
+
+@media (max-width: 540px) {
+  .notfound__brand { margin-bottom: 24px; }
+  .notfound__actions { width: 100%; }
+  .notfound__btn { flex: 1; justify-content: center; }
+}

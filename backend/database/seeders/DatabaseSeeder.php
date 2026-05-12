@@ -11,7 +11,6 @@ use App\Models\WorkOrderDepartment;
 use App\Models\WorkSession;
 use App\Models\Notification;
 use App\Models\AuditLog;
-use App\Models\Comment;
 use Carbon\Carbon;
 use Illuminate\Database\Seeder;
 
@@ -42,9 +41,9 @@ class DatabaseSeeder extends Seeder
         User::create(['name' => 'Administrador', 'email' => 'admin@admin.com', 'password' => bcrypt('admin123'), 'role' => 'admin']);
         User::create(['name' => 'Carlos Supervisor', 'email' => 'carlos@supervisor.com', 'password' => bcrypt('admin123'), 'role' => 'supervisor', 'departamento' => 'Taller']);
         User::create(['name' => 'Ana Supervisora', 'email' => 'ana@supervisor.com', 'password' => bcrypt('admin123'), 'role' => 'supervisor', 'departamento' => 'Instalacion']);
-        $maria = User::create(['name' => 'María Trabajadora', 'email' => 'maria@trabajador.com', 'password' => bcrypt('admin123'), 'role' => 'trabajador']);
-        $luis = User::create(['name' => 'Luis Trabajador', 'email' => 'luis@trabajador.com', 'password' => bcrypt('admin123'), 'role' => 'trabajador']);
-        $marcos = User::create(['name' => 'Marcos Trabajador', 'email' => 'marcos@trabajador.com', 'password' => bcrypt('admin123'), 'role' => 'trabajador']);
+        $maria = User::create(['name' => 'María Trabajadora', 'email' => 'maria@trabajador.com', 'password' => bcrypt('admin123'), 'role' => 'trabajador', 'departamento' => 'Taller']);
+        $luis = User::create(['name' => 'Luis Trabajador', 'email' => 'luis@trabajador.com', 'password' => bcrypt('admin123'), 'role' => 'trabajador', 'departamento' => 'Instalacion']);
+        $marcos = User::create(['name' => 'Marcos Trabajador', 'email' => 'marcos@trabajador.com', 'password' => bcrypt('admin123'), 'role' => 'trabajador', 'departamento' => 'General']);
 
         // Piezas (catálogo)
         $piezas = [];
@@ -197,28 +196,6 @@ class DatabaseSeeder extends Seeder
                 ]);
 
                 $piezasUsadas[$key] = $usadas + $piezasSession;
-            }
-        }
-
-        // ─── COMMENTS de ejemplo ───
-        $comentarios = [
-            'Recibido el material esta mañana, podemos empezar.',
-            'Cliente ha solicitado un cambio de color para la próxima entrega.',
-            'Verificad que las medidas coincidan con la pieza P-001 antes de cortar.',
-            'Falta una unidad por revisar, lo dejo apuntado.',
-            'Todo OK por mi parte, lista para instalación.',
-        ];
-        foreach ($allOrders->take(8) as $i => $order) {
-            $userPool = User::all()->all();
-            for ($c = 0; $c < rand(1, 3); $c++) {
-                $author = $userPool[array_rand($userPool)];
-                Comment::create([
-                    'work_order_id' => $order->id,
-                    'user_id' => $author->id,
-                    'body' => $comentarios[array_rand($comentarios)],
-                    'created_at' => now()->subDays(rand(0, 10))->subHours(rand(0, 23)),
-                    'updated_at' => now()->subDays(rand(0, 10)),
-                ]);
             }
         }
 
