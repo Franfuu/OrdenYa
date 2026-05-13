@@ -52,6 +52,13 @@ export const FloatingTimer: React.FC = () => {
     return () => clearInterval(id);
   }, [active]);
 
+  // Toggle body class while floating timer is visible (para ocultar la quick bar)
+  useEffect(() => {
+    if (active) document.body.classList.add('has-floating-timer');
+    else document.body.classList.remove('has-floating-timer');
+    return () => document.body.classList.remove('has-floating-timer');
+  }, [active]);
+
   if (!active) return null;
 
   const h = Math.floor(elapsed / 3600).toString().padStart(2, "0");
@@ -111,7 +118,7 @@ export const FloatingTimer: React.FC = () => {
             font-size: 1.02rem !important;
           }
           /* Cuando el timer flotante está activo, ocultar la barra Acceso Rápido */
-          body:has(.floating-timer-card) .ordenes-timer__quick { display: none !important; }
+          body.has-floating-timer .ordenes-timer__quick { display: none !important; }
         }
         @media (max-width: 420px) {
           .floating-timer-card {

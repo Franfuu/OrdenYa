@@ -629,7 +629,7 @@ export const TrabajadorOrdenes: React.FC = () => {
           </button>
           <button className="ordenes-timer__generic-btn" onClick={() => handleGenericTask('Mantenimiento', 'mantenimiento')} disabled={actionLoading !== null}>
             <div className="generic-btn-icon"><SettingsIcon size={26} /></div>
-            <div className="generic-btn-text">Mantenimiento</div>
+            <div className="generic-btn-text">Maquinas</div>
           </button>
           <button className="ordenes-timer__generic-btn" onClick={() => setShowQR(true)}>
             <div className="generic-btn-icon">
@@ -640,7 +640,7 @@ export const TrabajadorOrdenes: React.FC = () => {
                 <path d="M14 14h3v3h-3z M19 14h2 M14 19h3 M19 19v2"/>
               </svg>
             </div>
-            <div className="generic-btn-text">Escanear QR</div>
+            <div className="generic-btn-text">QR</div>
           </button>
         </div>
       </div>
