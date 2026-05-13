@@ -76,8 +76,7 @@
   max-width: 620px;
 }
 .login-hero__top > * {
-  opacity: 0;
-  animation: heroRise 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: heroRise 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 .login-hero__top > *:nth-child(1) { animation-delay: 0.05s; }
 .login-hero__top > *:nth-child(2) { animation-delay: 0.20s; }
