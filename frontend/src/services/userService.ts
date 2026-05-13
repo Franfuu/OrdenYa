@@ -1,6 +1,6 @@
 import { http } from "./http";
 
-export type Departamento = 'Taller' | 'Instalacion' | 'General';
+export type Departamento = 'Taller' | 'Instalacion';
 
 export interface User {
     id: number;

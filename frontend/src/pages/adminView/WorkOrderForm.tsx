@@ -297,7 +297,7 @@ export const WorkOrderForm: React.FC = () => {
             // Filtrar trabajadores cuyo dept global encaja con este dept
             const deptWorkers = workers.filter(w => {
               const wd = (w.departamento ?? "").toLowerCase();
-              if (!wd || wd === "general") return true;
+              if (!wd) return true;
               if (d.slug === "taller") return wd === "taller";
               if (d.slug === "instalacion") return wd === "instalacion" || wd === "instalación";
               return false;

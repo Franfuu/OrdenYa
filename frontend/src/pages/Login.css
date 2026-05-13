@@ -120,13 +120,8 @@
 .login-hero__headline em {
   font-style: italic;
   font-family: var(--font-display);
-  background: linear-gradient(95deg, #EF9F27 0%, #f6c46b 60%, #EF9F27 100%);
-  background-size: 200% 100%;
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  color: #EF9F27;
   font-weight: 700;
-  animation: heroShine 5s ease-in-out infinite;
   display: inline-block;
   padding-right: 0.18em;
   margin-right: -0.08em;

@@ -75,7 +75,7 @@ export const TrabajadorWorkOrderDetail: React.FC = () => {
     const d = (user?.departamento ?? "").toLowerCase();
     if (d === "taller") return "taller";
     if (d === "instalacion" || d === "instalación") return "instalacion";
-    return null; // General → both
+    return null; // Sin dept → ambos
   })();
   const myDepts = (order?.departments ?? []).filter(dept =>
     !dept.finalizado_at &&
@@ -274,7 +274,7 @@ export const TrabajadorWorkOrderDetail: React.FC = () => {
                   {asignadas != null && (
                     <div style={{ marginTop: "0.25rem" }}>
                       <div style={{ height: 6, borderRadius: 3, background: "#e5e7eb", overflow: "hidden", marginBottom: "0.2rem" }}>
-                        <div style={{ width: `${pct}%`, height: "100%", background: color, transition: "width 0.3s" }} />
+                        <div style={{ width: "100%", height: "100%", background: color, transform: `scaleX(${pct / 100})`, transformOrigin: "left", transition: "transform 0.3s ease-out" }} />
                       </div>
                       <span style={{ fontSize: "0.78rem", fontWeight: 600, color }}>
                         {completadas} / {asignadas} piezas ({pct}%)

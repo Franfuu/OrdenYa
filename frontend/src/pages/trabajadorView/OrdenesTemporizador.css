@@ -190,7 +190,6 @@
 
 .ordenes-timer__row--active {
   background: var(--primary-light);
-  border-left: 3px solid var(--primary);
 }
 .ordenes-timer__row--active:hover { background: rgba(0, 110, 106, 0.15); }
 

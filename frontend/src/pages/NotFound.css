@@ -94,20 +94,14 @@
   line-height: 1;
   letter-spacing: -0.04em;
   margin: 8px 0;
-  background: linear-gradient(135deg, #ffffff 0%, #d8d2ff 50%, #EF9F27 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  color: #EF9F27;
   text-shadow: 0 8px 40px rgba(83, 74, 183, 0.35);
 }
 
 .notfound__zero {
   display: inline-block;
   animation: nfPulse 3s ease-in-out infinite;
-  background: linear-gradient(135deg, #ffffff 0%, #d8d2ff 50%, #EF9F27 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  color: #EF9F27;
 }
 @keyframes nfPulse {
   0%, 100% { transform: scale(1); }

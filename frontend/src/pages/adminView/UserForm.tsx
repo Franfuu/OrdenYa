@@ -16,7 +16,7 @@ export const UserForm: React.FC = () => {
     email: "",
     password: "",
     role: "trabajador" as User["role"],
-    departamento: "General" as Departamento,
+    departamento: "Taller" as Departamento,
   });
   const [loading, setLoading] = useState(false);
   const [fetchLoading, setFetchLoading] = useState(isEditing);
@@ -31,7 +31,7 @@ export const UserForm: React.FC = () => {
             email: user.email,
             password: "",
             role: user.role || "trabajador",
-            departamento: user.departamento || "General",
+            departamento: user.departamento || "Taller",
           });
         })
         .catch(() => sileo.error({ title: "Error al cargar", description: "No se pudo cargar el usuario." }))
@@ -115,7 +115,6 @@ export const UserForm: React.FC = () => {
               <label htmlFor="uf-dept" className="wo-form__field-label">Departamento</label>
               <select id="uf-dept" value={formData.departamento} disabled={fetchLoading}
                 onChange={e => setFormData(prev => ({ ...prev, departamento: e.target.value as Departamento }))}>
-                <option value="General">General</option>
                 <option value="Taller">Taller</option>
                 <option value="Instalacion">Instalación</option>
               </select>

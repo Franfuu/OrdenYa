@@ -43,7 +43,7 @@ class DatabaseSeeder extends Seeder
         User::create(['name' => 'Ana Supervisora', 'email' => 'ana@supervisor.com', 'password' => bcrypt('admin123'), 'role' => 'supervisor', 'departamento' => 'Instalacion']);
         $maria = User::create(['name' => 'María Trabajadora', 'email' => 'maria@trabajador.com', 'password' => bcrypt('admin123'), 'role' => 'trabajador', 'departamento' => 'Taller']);
         $luis = User::create(['name' => 'Luis Trabajador', 'email' => 'luis@trabajador.com', 'password' => bcrypt('admin123'), 'role' => 'trabajador', 'departamento' => 'Instalacion']);
-        $marcos = User::create(['name' => 'Marcos Trabajador', 'email' => 'marcos@trabajador.com', 'password' => bcrypt('admin123'), 'role' => 'trabajador', 'departamento' => 'General']);
+        $marcos = User::create(['name' => 'Marcos Trabajador', 'email' => 'marcos@trabajador.com', 'password' => bcrypt('admin123'), 'role' => 'trabajador', 'departamento' => 'Instalacion']);
 
         // Piezas (catálogo)
         $piezas = [];

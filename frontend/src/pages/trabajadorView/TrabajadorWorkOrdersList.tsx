@@ -54,7 +54,7 @@ export const TrabajadorWorkOrdersList: React.FC = () => {
     const d = (user?.departamento ?? "").toLowerCase();
     if (d === "taller") return "taller";
     if (d === "instalacion" || d === "instalación") return "instalacion";
-    return null; // General or none → all
+    return null; // Sin dept → ve todo
   })();
   const deptMatches = (slug: string) => !userDeptSlug || slug === userDeptSlug;
   const [sortKey, setSortKey] = useState<SortKey>(null);

@@ -73,7 +73,6 @@ export const KPIPanel: React.FC<Props> = ({ showUsers = true }) => {
             onClick={k.onClick}
             onKeyDown={k.onClick ? (e) => { if (e.key === "Enter" || e.key === " ") k.onClick!(); } : undefined}
             style={{
-            borderLeft: `4px solid ${k.color}`,
             cursor: k.onClick ? "pointer" : "default",
             transition: "transform 0.15s, box-shadow 0.15s",
           }}

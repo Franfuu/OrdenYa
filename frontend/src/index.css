@@ -1,6 +1,6 @@
 :root {
   /* Fix sileo spring easing overshoot causing negative SVG rect height */
-  --sileo-spring-easing: cubic-bezier(0.34, 1.2, 0.64, 1);
+  --sileo-spring-easing: cubic-bezier(0.22, 1, 0.36, 1);
 
   /* ── Paleta OrdenYa ── */
   --brand-50:       #f3f1ff;
@@ -500,8 +500,7 @@ select.input-base { cursor: pointer; appearance: none; background-image: url("da
 }
 
 .stat-card.stat-primary {
-  border-left: 3px solid var(--primary);
-  background: linear-gradient(135deg, rgba(0,110,106,0.03) 0%, var(--card-bg) 60%);
+  background: linear-gradient(135deg, rgba(0,110,106,0.05) 0%, var(--card-bg) 60%);
 }
 
 .stat-card h4 {
@@ -763,7 +762,7 @@ select.input-base { cursor: pointer; appearance: none; background-image: url("da
   pointer-events: all;
   min-width: 240px;
   max-width: 440px !important;
-  background: #000000 !important;
+  background: oklch(14% 0.01 270) !important;
   color: #ffffff !important;
   border-radius: 999px !important; /* Forma de píldora perfecta */
   font-family: var(--font-family) !important;

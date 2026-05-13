@@ -113,7 +113,7 @@ class WorkOrderController extends Controller
     {
         if (! $user || $user->role !== 'supervisor') return null;
         $allowedSlugs = $this->allowedDeptSlugsForUser($user);
-        if ($allowedSlugs === null) return null; // supervisor general → sin restricción
+        if ($allowedSlugs === null) return null; // supervisor sin dept → sin restricción
         if (empty($allowedSlugs)) {
             return response()->json(['message' => 'Tu cuenta de supervisor no tiene un departamento asignado.'], 403);
         }
@@ -132,7 +132,6 @@ class WorkOrderController extends Controller
         return match (strtolower((string) $user->departamento)) {
             'taller'      => ['taller'],
             'instalacion', 'instalación' => ['instalacion'],
-            'general', ''  => null, // supervisor general → ve todo
             default       => null,
         };
     }

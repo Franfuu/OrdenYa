@@ -116,7 +116,7 @@ export const UserDetail: React.FC = () => {
           </div>
           <div className="user-detail__field">
             <span className="user-detail__field-label">Departamento</span>
-            <span className="user-detail__field-value">{user.departamento ?? 'General'}</span>
+            <span className="user-detail__field-value">{user.departamento ?? '—'}</span>
           </div>
           {user.created_at && (
             <div className="user-detail__field">

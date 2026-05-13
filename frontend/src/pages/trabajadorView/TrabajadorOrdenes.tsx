@@ -68,7 +68,7 @@ export const TrabajadorOrdenes: React.FC = () => {
     const d = (user?.departamento ?? "").toLowerCase();
     if (d === "taller") return "taller";
     if (d === "instalacion" || d === "instalación") return "instalacion";
-    return null; // General / null → both
+    return null; // Sin dept → ambos
   })();
 
   const getMyDepts = (order: WorkOrder): WorkOrderDepartment[] => {

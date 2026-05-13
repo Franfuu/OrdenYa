@@ -339,7 +339,7 @@ export const WorkOrderDetail: React.FC = () => {
                       {/* Dept progress bar */}
                       {dept.piezas != null && dept.piezas > 0 && (
                         <div style={{ height: 4, borderRadius: 2, background: "#e5e7eb", overflow: "hidden", marginBottom: "0.5rem" }}>
-                          <div style={{ width: `${pct}%`, height: "100%", background: color, transition: "width 0.3s" }} />
+                          <div style={{ width: "100%", height: "100%", background: color, transform: `scaleX(${pct / 100})`, transformOrigin: "left", transition: "transform 0.3s ease-out" }} />
                         </div>
                       )}
                       {/* Worker rows */}
@@ -368,7 +368,7 @@ export const WorkOrderDetail: React.FC = () => {
                                       <div className="wo-detail__worker-progress">
                                         <div
                                           className="wo-detail__worker-progress-fill"
-                                          style={{ width: `${workerPct}%`, background: w.approved_at ? "#1D9E75" : color }}
+                                          style={{ background: w.approved_at ? "#1D9E75" : color, transform: `scaleX(${workerPct / 100})` }}
                                         />
                                       </div>
                                     )}

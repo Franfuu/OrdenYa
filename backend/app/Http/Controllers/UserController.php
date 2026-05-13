@@ -63,7 +63,7 @@ class UserController extends Controller
             'email' => 'required|string|email|max:255|unique:users,email',
             'password' => 'required|string|min:8',
             'role' => ['nullable', Rule::in(['admin', 'supervisor', 'trabajador', 'jefe'])],
-            'departamento' => ['nullable', Rule::in(['Taller', 'Instalacion', 'General'])],
+            'departamento' => ['nullable', Rule::in(['Taller', 'Instalacion'])],
         ]);
 
         $validated['password'] = Hash::make($validated['password']);
@@ -91,7 +91,7 @@ class UserController extends Controller
             'email' => ['sometimes', 'required', 'string', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
             'password' => 'sometimes|required|string|min:8',
             'role' => ['nullable', Rule::in(['admin', 'supervisor', 'trabajador', 'jefe'])],
-            'departamento' => ['nullable', Rule::in(['Taller', 'Instalacion', 'General'])],
+            'departamento' => ['nullable', Rule::in(['Taller', 'Instalacion'])],
         ]);
 
         if (isset($validated['password'])) {

@@ -368,7 +368,9 @@
 
 .wo-detail__worker-progress-fill {
   height: 100%;
-  transition: width 0.3s;
+  width: 100%;
+  transform-origin: left;
+  transition: transform 0.3s ease-out;
 }
 
 /* ── Approve button ─────────────────────── */

@@ -133,9 +133,11 @@
 
 .trabajador-detail__progress-bar-fill {
   height: 100%;
+  width: 100%;
   background: var(--success);
   border-radius: 9999px;
-  transition: width 0.4s ease;
+  transform-origin: left;
+  transition: transform 0.4s ease-out;
 }
 
 .trabajador-detail__progress-text {
