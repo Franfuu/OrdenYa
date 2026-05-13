@@ -596,7 +596,7 @@ export const TrabajadorOrdenes: React.FC = () => {
 
                   {/* Ver */}
                   {!inputOpen && (
-                    <div style={{ display: "flex", flexDirection: "column", gap: "0.3rem", flexShrink: 0 }}>
+                    <div className="ordenes-timer__row-view">
                       <button className="ordenes-timer__details-btn" onClick={() => navigate(`${detailBasePath}/${order.id}`)}>
                         Ver
                       </button>

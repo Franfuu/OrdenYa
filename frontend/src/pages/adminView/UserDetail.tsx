@@ -30,10 +30,14 @@ export const UserDetail: React.FC = () => {
         setError(null);
       })
       .catch((err: any) => {
+        if (err?.response?.status === 404) {
+          navigate("/404", { replace: true });
+          return;
+        }
         setError(err.response?.data?.message || err.message || "Error al cargar usuario");
       })
       .finally(() => setLoading(false));
-  }, [id]);
+  }, [id, navigate]);
 
   const handleDelete = async () => {
     if (!user) return;

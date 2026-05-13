@@ -102,3 +102,16 @@
   text-align: center;
   color: var(--text-secondary);
 }
+
+@media (max-width: 768px) {
+  .users-manager__form {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  .users-manager__form-card { padding: var(--space-3); }
+  .users-manager__actions { flex-direction: column; gap: 0.5rem; }
+  .users-manager__actions > button { width: 100%; }
+  .users-manager__actions-cell { text-align: left; }
+  .users-manager__btn-sm,
+  .users-manager__btn-sm--last { margin-right: 6px; padding: 0.35rem 0.65rem; font-size: 0.8rem; }
+}

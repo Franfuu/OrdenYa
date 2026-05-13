@@ -3,7 +3,6 @@ import { useTheme } from "../../context/ThemeContext";
 import { useMobileNav } from "../../context/MobileNavContext";
 import { SunIcon, MoonIcon } from "../Icons";
 import { NotificationBell } from "../NotificationBell";
-import { InstallPWAButton } from "../InstallPWAButton";
 import "./Topbar.css";
 
 interface TopbarProps {
@@ -29,7 +28,6 @@ export const Topbar: React.FC<TopbarProps> = ({ title }) => {
       <h1 className="topbar__title">{title}</h1>
 
       <div className="topbar__actions">
-        <InstallPWAButton />
         <NotificationBell />
         <button
           onClick={toggleTheme}

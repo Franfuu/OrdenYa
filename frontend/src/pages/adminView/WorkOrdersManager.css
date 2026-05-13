@@ -404,3 +404,26 @@
 @media (max-width: 1023px) {
   .table-container { font-size: var(--text-xs); }
 }
+
+@media (max-width: 768px) {
+  .pagination {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.6rem;
+    padding: 0.8rem 0.5rem;
+  }
+  .pagination__info { text-align: center; }
+  .pagination__controls { justify-content: center; flex-wrap: wrap; }
+  .pagination__btn { min-width: 36px; height: 36px; font-size: var(--text-xs); }
+
+  .work-orders-manager__form { gap: 0.85rem; }
+  .work-orders-manager__form-card { padding: var(--space-3); }
+  .work-orders-manager__col-span-2 { grid-column: 1 / -1; }
+  .work-orders-manager__actions { flex-direction: column; gap: 0.5rem; }
+  .work-orders-manager__actions > button { width: 100%; }
+
+  .work-orders-manager__trabajador-chip {
+    padding: 0.35rem 0.75rem;
+    font-size: 0.78rem;
+  }
+}

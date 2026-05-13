@@ -31,13 +31,13 @@ export const OrderAuditLog: React.FC<{ orderId: number; refreshKey?: number }> =
   if (entries.length === 0) return null;
 
   return (
-    <div className="glass-card wo-detail__section">
+    <div className="glass-card wo-detail__section" data-audit-log>
       <h3 className="wo-detail__section-title">Historial de cambios</h3>
       <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
         {entries.map(e => {
           const meta = ACTION_META[e.action] ?? { color: "#666", label: e.action };
           return (
-            <div key={e.id} style={{ display: "flex", alignItems: "center", gap: "0.7rem", fontSize: "0.83rem" }}>
+            <div key={e.id} data-audit-row style={{ display: "flex", alignItems: "center", gap: "0.7rem", fontSize: "0.83rem" }}>
               <span style={{
                 padding: "0.15rem 0.5rem",
                 borderRadius: 4,
@@ -49,7 +49,7 @@ export const OrderAuditLog: React.FC<{ orderId: number; refreshKey?: number }> =
                 textAlign: "center",
               }}>{meta.label}</span>
               <span style={{ flex: 1, opacity: 0.85 }}>{e.summary ?? "—"}</span>
-              <span style={{ opacity: 0.6, fontSize: "0.75rem" }}>
+              <span data-audit-meta style={{ opacity: 0.6, fontSize: "0.75rem", textAlign: "right" }}>
                 {e.user?.name ?? "Sistema"} · {new Date(e.created_at).toLocaleString("es-ES", { dateStyle: "short", timeStyle: "short" })}
               </span>
             </div>

@@ -79,4 +79,17 @@
   .stats-grid {
     grid-template-columns: 1fr;
   }
+  .configuracion-page__title { font-size: 1.2rem; }
+  .configuracion-page__tabs {
+    overflow-x: auto;
+    scrollbar-width: none;
+    flex-wrap: nowrap;
+  }
+  .configuracion-page__tabs::-webkit-scrollbar { display: none; }
+  .configuracion-page__tab {
+    padding: 0.55rem 0.9rem;
+    font-size: 0.85rem;
+    flex-shrink: 0;
+  }
+  .configuracion-page__content { min-height: 280px; }
 }

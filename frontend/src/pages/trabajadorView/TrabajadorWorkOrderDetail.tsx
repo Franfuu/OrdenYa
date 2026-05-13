@@ -58,8 +58,16 @@ export const TrabajadorWorkOrderDetail: React.FC = () => {
 
   useEffect(() => {
     setLoading(true);
-    loadOrder().catch(err => setError(getErrorMessage(err))).finally(() => setLoading(false));
-  }, [loadOrder]);
+    loadOrder()
+      .catch(err => {
+        if (err?.response?.status === 404) {
+          navigate("/404", { replace: true });
+          return;
+        }
+        setError(getErrorMessage(err));
+      })
+      .finally(() => setLoading(false));
+  }, [loadOrder, navigate]);
 
   // Timer
   useEffect(() => {
@@ -186,22 +194,61 @@ export const TrabajadorWorkOrderDetail: React.FC = () => {
 
   const mySessions = (order.work_sessions ?? []).filter(s => s.user_id === user?.id && s.end_time);
 
+  const myDeptsBlock = myDepts.length > 0 ? (
+    <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", marginTop: "0.85rem" }}>
+      {myDepts.map(dept => {
+        const slug = dept.department?.slug ?? "";
+        const color = DEPT_COLORS[slug] ?? "#6b7280";
+        const myWorker = (dept.workers ?? []).find(w => w.user_id === user?.id);
+        const asignadas = myWorker?.piezas_asignadas ?? null;
+        const completadas = myWorker?.piezas_completadas ?? 0;
+        const pct = asignadas && asignadas > 0 ? Math.min(100, Math.round((completadas / asignadas) * 100)) : 0;
+        return (
+          <div key={dept.id} style={{
+            padding: "0.6rem 0.8rem", borderRadius: 8,
+            border: `1.5px solid ${color}40`, background: `${color}08`,
+          }}>
+            <div style={{ fontWeight: 600, fontSize: "0.85rem", color, marginBottom: "0.35rem" }}>
+              {DEPT_LABELS[slug] ?? dept.department?.name}
+              {dept.piezas != null && (
+                <span style={{ fontWeight: 400, fontSize: "0.75rem", color: "var(--text-secondary)", marginLeft: "0.5rem" }}>
+                  ({dept.piezas} piezas totales del dept)
+                </span>
+              )}
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "0.3rem", marginBottom: "0.35rem" }}>
+              {(dept.phases ?? []).flatMap(p => p.is_active ? [(
+                <span key={p.id} style={{
+                  padding: "0.15rem 0.5rem", borderRadius: 10, fontSize: "0.73rem",
+                  background: p.phase?.pieces_from ? `${color}20` : "var(--surface-elevated)",
+                  border: `1px solid ${p.phase?.pieces_from ? color : "#e5e7eb"}`,
+                  color: p.phase?.pieces_from ? color : "var(--text-secondary)",
+                }}>
+                  {p.phase?.name ?? p.custom_name}
+                </span>
+              )] : [])}
+            </div>
+            {asignadas != null && (
+              <div style={{ marginTop: "0.25rem" }}>
+                <div style={{ height: 6, borderRadius: 3, background: "#e5e7eb", overflow: "hidden", marginBottom: "0.2rem" }}>
+                  <div style={{ width: "100%", height: "100%", background: color, transform: `scaleX(${pct / 100})`, transformOrigin: "left", transition: "transform 0.3s ease-out" }} />
+                </div>
+                <span style={{ fontSize: "0.78rem", fontWeight: 600, color }}>
+                  {completadas} / {asignadas} piezas ({pct}%)
+                </span>
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  ) : null;
+
   return (
     <div className="trabajador-detail animate-fade-in">
       <div className="trabajador-detail__header">
         <h2 className="trabajador-detail__title">{order.codigo_orden}</h2>
         <button className="btn-outline" onClick={() => navigate(-1)}>Volver</button>
-      </div>
-
-      {/* Order info */}
-      <div className="trabajador-detail__card">
-        <h3 className="trabajador-detail__card-title">Detalles</h3>
-        <dl className="trabajador-detail__dl">
-          <div className="trabajador-detail__dl-row"><dt>Nombre</dt><dd>{order.nombre_orden}</dd></div>
-          {order.nombre_cliente && <div className="trabajador-detail__dl-row"><dt>Cliente</dt><dd>{order.nombre_cliente}</dd></div>}
-          {order.modelo && <div className="trabajador-detail__dl-row"><dt>Modelo</dt><dd>{order.modelo}</dd></div>}
-          {order.observacion && <div className="trabajador-detail__dl-row"><dt>Observación</dt><dd>{order.observacion}</dd></div>}
-        </dl>
       </div>
 
       {/* Custom fields visible to worker */}
@@ -232,63 +279,7 @@ export const TrabajadorWorkOrderDetail: React.FC = () => {
         </div>
       )}
 
-      {/* My departments */}
-      {myDepts.length > 0 && (
-        <div className="trabajador-detail__card">
-          <h3 className="trabajador-detail__card-title">Mis departamentos</h3>
-          <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-            {myDepts.map(dept => {
-              const slug = dept.department?.slug ?? "";
-              const color = DEPT_COLORS[slug] ?? "#6b7280";
-              const myWorker = (dept.workers ?? []).find(w => w.user_id === user?.id);
-              const asignadas = myWorker?.piezas_asignadas ?? null;
-              const completadas = myWorker?.piezas_completadas ?? 0;
-              const pct = asignadas && asignadas > 0 ? Math.min(100, Math.round((completadas / asignadas) * 100)) : 0;
-              return (
-                <div key={dept.id} style={{
-                  padding: "0.6rem 0.8rem", borderRadius: 8,
-                  border: `1.5px solid ${color}40`, background: `${color}08`,
-                }}>
-                  <div style={{ fontWeight: 600, fontSize: "0.85rem", color, marginBottom: "0.35rem" }}>
-                    {DEPT_LABELS[slug] ?? dept.department?.name}
-                    {dept.piezas != null && (
-                      <span style={{ fontWeight: 400, fontSize: "0.75rem", color: "var(--text-secondary)", marginLeft: "0.5rem" }}>
-                        ({dept.piezas} piezas totales del dept)
-                      </span>
-                    )}
-                  </div>
-                  {/* Active phases */}
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: "0.3rem", marginBottom: "0.35rem" }}>
-                    {(dept.phases ?? []).flatMap(p => p.is_active ? [(
-                      <span key={p.id} style={{
-                        padding: "0.15rem 0.5rem", borderRadius: 10, fontSize: "0.73rem",
-                        background: p.phase?.pieces_from ? `${color}20` : "var(--surface-elevated)",
-                        border: `1px solid ${p.phase?.pieces_from ? color : "#e5e7eb"}`,
-                        color: p.phase?.pieces_from ? color : "var(--text-secondary)",
-                      }}>
-                        {p.phase?.name ?? p.custom_name}
-                      </span>
-                    )] : [])}
-                  </div>
-                  {/* My piece progress */}
-                  {asignadas != null && (
-                    <div style={{ marginTop: "0.25rem" }}>
-                      <div style={{ height: 6, borderRadius: 3, background: "#e5e7eb", overflow: "hidden", marginBottom: "0.2rem" }}>
-                        <div style={{ width: "100%", height: "100%", background: color, transform: `scaleX(${pct / 100})`, transformOrigin: "left", transition: "transform 0.3s ease-out" }} />
-                      </div>
-                      <span style={{ fontSize: "0.78rem", fontWeight: 600, color }}>
-                        {completadas} / {asignadas} piezas ({pct}%)
-                      </span>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Timer */}
+      {/* Timer (with dept context inside) */}
       {!finalizada && (
         <div className="trabajador-detail__card trabajador-detail__timer-card">
           <h3 className="trabajador-detail__card-title">Temporizador</h3>
@@ -307,24 +298,27 @@ export const TrabajadorWorkOrderDetail: React.FC = () => {
           )}
 
           {!showStopInput ? (
-            <div className="trabajador-detail__timer-actions">
-              {!activeSession ? (
-                myDepts.length > 0 || isGeneric ? (
-                  <button className="trabajador-detail__btn-start" onClick={() => setStartModal(true)} disabled={actionLoading}>
-                    Iniciar
-                  </button>
+            <>
+              <div className="trabajador-detail__timer-actions">
+                {!activeSession ? (
+                  myDepts.length > 0 || isGeneric ? (
+                    <button className="trabajador-detail__btn-start" onClick={() => setStartModal(true)} disabled={actionLoading}>
+                      Iniciar
+                    </button>
+                  ) : (
+                    <p style={{ textAlign: "center", fontSize: "0.83rem", color: "var(--text-secondary)" }}>
+                      No estás asignado a ningún departamento activo.
+                    </p>
+                  )
                 ) : (
-                  <p style={{ textAlign: "center", fontSize: "0.83rem", color: "var(--text-secondary)" }}>
-                    No estás asignado a ningún departamento activo.
-                  </p>
-                )
-              ) : (
-                <>
-                  <button className="trabajador-detail__btn-pause" onClick={() => openStop("pause")} disabled={actionLoading}>Pausar</button>
-                  <button className="trabajador-detail__btn-stop" onClick={() => openStop("stop")} disabled={actionLoading}>Terminar</button>
-                </>
-              )}
-            </div>
+                  <>
+                    <button className="trabajador-detail__btn-pause" onClick={() => openStop("pause")} disabled={actionLoading}>Pausar</button>
+                    <button className="trabajador-detail__btn-stop" onClick={() => openStop("stop")} disabled={actionLoading}>Terminar</button>
+                  </>
+                )}
+              </div>
+              {myDeptsBlock}
+            </>
           ) : (
             <div className="trabajador-detail__piezas-input">
               {activePhaseEntry?.phase?.pieces_from ? (
@@ -373,6 +367,17 @@ export const TrabajadorWorkOrderDetail: React.FC = () => {
         </div>
       )}
 
+      {/* Order info (Detalles) */}
+      <div className="trabajador-detail__card">
+        <h3 className="trabajador-detail__card-title">Detalles</h3>
+        <dl className="trabajador-detail__dl">
+          <div className="trabajador-detail__dl-row"><dt>Nombre</dt><dd>{order.nombre_orden}</dd></div>
+          {order.nombre_cliente && <div className="trabajador-detail__dl-row"><dt>Cliente</dt><dd>{order.nombre_cliente}</dd></div>}
+          {order.modelo && <div className="trabajador-detail__dl-row"><dt>Modelo</dt><dd>{order.modelo}</dd></div>}
+          {order.observacion && <div className="trabajador-detail__dl-row"><dt>Observación</dt><dd>{order.observacion}</dd></div>}
+        </dl>
+      </div>
+
       {/* Sessions history */}
       {mySessions.length > 0 && (
         <div className="trabajador-detail__card">
@@ -381,7 +386,7 @@ export const TrabajadorWorkOrderDetail: React.FC = () => {
             <table className="trabajador-detail__table">
               <thead>
                 <tr>
-                  <th>Fecha</th><th>Inicio</th><th>Fin</th><th>Duración</th><th>Piezas</th><th>Notas</th>
+                  <th>Fecha</th><th>Duración</th><th>Piezas</th><th>Notas</th>
                 </tr>
               </thead>
               <tbody>
@@ -391,8 +396,6 @@ export const TrabajadorWorkOrderDetail: React.FC = () => {
                   return (
                     <tr key={s.id}>
                       <td>{start.toLocaleDateString()}</td>
-                      <td>{start.toLocaleTimeString()}</td>
-                      <td>{s.end_time ? new Date(s.end_time).toLocaleTimeString() : "—"}</td>
                       <td>{s.duration_in_seconds ? formatDuration(s.duration_in_seconds) : "—"}</td>
                       <td>{s.piezas ?? "—"}</td>
                       <td style={{ maxWidth: 200, fontSize: "0.78rem", color: "var(--text-secondary)" }}>

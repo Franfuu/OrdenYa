@@ -142,7 +142,7 @@ export const NotificationBell: React.FC = () => {
       </button>
 
       {open && createPortal(
-        <div data-notif-dropdown style={{
+        <div data-notif-dropdown className="notif-dropdown" style={{
           position: "fixed",
           top: pos.top, right: pos.right,
           width: 340,
@@ -156,7 +156,17 @@ export const NotificationBell: React.FC = () => {
           zIndex: 50,
           animation: "notifSlide 0.18s cubic-bezier(0.16, 1, 0.3, 1)",
         }}>
-          <style>{`@keyframes notifSlide{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}`}</style>
+          <style>{`
+            @keyframes notifSlide{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+            @media (max-width: 480px) {
+              .notif-dropdown {
+                left: 8px !important;
+                right: 8px !important;
+                width: auto !important;
+                max-height: 70vh !important;
+              }
+            }
+          `}</style>
           <div style={{
             padding: "0.85rem 1rem",
             borderBottom: "1px solid var(--border-color, #e2e8f0)",

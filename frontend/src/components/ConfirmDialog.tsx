@@ -56,8 +56,18 @@ export const ConfirmProvider: React.FC<{ children: React.ReactNode }> = ({ child
           <style>{`
             @keyframes confirmFade{from{opacity:0}to{opacity:1}}
             @keyframes confirmPop{from{opacity:0;transform:scale(0.94) translateY(8px)}to{opacity:1;transform:scale(1) translateY(0)}}
+            @media (max-width: 480px) {
+              .confirm-dialog-card { border-radius: 14px !important; }
+              .confirm-dialog-head { padding: 1.1rem 1.1rem 0.6rem !important; gap: 12px !important; }
+              .confirm-dialog-actions {
+                grid-template-columns: 1fr !important;
+                padding: 0.85rem 1.1rem !important;
+              }
+              .confirm-dialog-actions button { padding: 12px 16px !important; }
+            }
           `}</style>
           <div
+            className="confirm-dialog-card"
             onClick={e => e.stopPropagation()}
             style={{
               background: "var(--card-bg)",
@@ -77,7 +87,7 @@ export const ConfirmProvider: React.FC<{ children: React.ReactNode }> = ({ child
                 : "linear-gradient(90deg, var(--brand) 0%, var(--amber) 100%)",
             }} />
 
-            <div style={{ padding: "1.6rem 1.6rem 0.8rem", display: "flex", gap: 16, alignItems: "flex-start" }}>
+            <div className="confirm-dialog-head" style={{ padding: "1.6rem 1.6rem 0.8rem", display: "flex", gap: 16, alignItems: "flex-start" }}>
               <div style={{
                 width: 44, height: 44, borderRadius: 12, flexShrink: 0,
                 background: state.danger ? "rgba(239,68,68,0.14)" : "rgba(60,52,137,0.12)",
@@ -115,7 +125,7 @@ export const ConfirmProvider: React.FC<{ children: React.ReactNode }> = ({ child
               </div>
             </div>
 
-            <div style={{
+            <div className="confirm-dialog-actions" style={{
               padding: "1.2rem 1.6rem",
               display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10,
               borderTop: "1px solid var(--border-color)", marginTop: "0.8rem",

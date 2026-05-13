@@ -59,6 +59,7 @@ export const SupervisorDashboard: React.FC = () => {
             <Route path="piezas/editar/:id"  element={<PiezaForm />} />
             <Route path="perfil"             element={<Profile />} />
             <Route index                     element={<Navigate to="/supervisor/inicio" replace />} />
+            <Route path="*"                  element={<Navigate to="/404" replace />} />
           </Routes>
         </div>
       </div>

@@ -79,6 +79,7 @@ export const AdminDashboard: React.FC = () => {
             <Route path="perfil"                element={<Profile />} />
 
             <Route index                        element={<Navigate to="/admin/inicio" replace />} />
+            <Route path="*"                     element={<Navigate to="/404" replace />} />
           </Routes>
         </div>
       </div>

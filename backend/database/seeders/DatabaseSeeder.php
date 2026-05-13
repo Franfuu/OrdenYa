@@ -60,81 +60,55 @@ class DatabaseSeeder extends Seeder
             $piezas[$cod] = Pieza::create(['codigo' => $cod, 'nombre' => $nom, 'descripcion' => $desc]);
         }
 
-        // Sample orders
-        $createOrder = function (string $codigo, string $nombre, string $cliente, string $piezaCode, array $deptSlugs, array $workersByDept) use ($piezas) {
+        // ─── Órdenes futuras: 70% Taller, 20% Instalación, 10% mixtas ───
+        // fecha_fin alterna entre +13 días y +20 días desde hoy
+        $clientes = ['Edificios Mediterráneo', 'Restaurante La Plaza', 'Centro Comercial Sur', 'Aeropuerto Norte',
+                     'Hospital San Juan', 'Hotel Vista Mar', 'Naves Industriales SA', 'Polideportivo Municipal',
+                     'Oficinas TechHub', 'Residencial Las Acacias', 'Bodega del Valle', 'Fábrica Textil Norte',
+                     'Constructora Norte', 'Hotel Marina', 'Comercial López', 'Talleres Mecánicos SA',
+                     'Inmobiliaria Costa', 'Colegio San Francisco', 'Centro Cultural', 'Gimnasio Olímpico'];
+        $piezaCodes = array_keys($piezas);
+        $trabajadores = [$maria, $luis, $marcos];
+        $tallerWorkers = [$maria];
+        $instalWorkers = [$luis, $marcos];
+        $prioridades = ['baja', 'media', 'alta'];
+
+        // Composición: 14 Taller + 4 Instalación + 2 Mixtas = 20 órdenes
+        $orderDeptConfigs = array_merge(
+            array_fill(0, 14, ['taller']),
+            array_fill(0, 4, ['instalacion']),
+            array_fill(0, 2, ['taller', 'instalacion'])
+        );
+        shuffle($orderDeptConfigs);
+
+        foreach ($orderDeptConfigs as $idx => $deptSlugs) {
+            $codigo = sprintf('V26-%04d', $idx + 1);
+            $piezaCode = $piezaCodes[$idx % count($piezaCodes)];
+            $cliente = $clientes[$idx % count($clientes)];
+            $endDays = ($idx % 2 === 0) ? 13 : 20;
+            $startAgo = rand(3, 12);
+
             $order = WorkOrder::create([
                 'codigo_orden' => $codigo,
-                'nombre_orden' => $nombre,
-                'fecha_inicio' => now(),
-                'fecha_fin' => now()->addDays(7),
-                'unidades' => 5,
+                'nombre_orden' => "Pedido {$cliente}",
+                'fecha_inicio' => now()->subDays($startAgo),
+                'fecha_fin' => now()->addDays($endDays),
+                'unidades' => rand(5, 25),
                 'pieza_id' => $piezas[$piezaCode]->id,
+                'prioridad' => $prioridades[array_rand($prioridades)],
                 'nombre_cliente' => $cliente,
             ]);
             $order->update(['qr_codigo' => url("/trabajador/ordenes/{$order->id}")]);
+
             foreach ($deptSlugs as $slug) {
                 $dept = Department::where('slug', $slug)->first();
                 $wod = $order->departments()->create(['department_id' => $dept->id]);
                 foreach ($dept->phases as $phase) {
                     $wod->phases()->create(['phase_id' => $phase->id, 'is_active' => true]);
                 }
-                $workerIds = $workersByDept[$slug] ?? [];
-                $n = count($workerIds);
-                $base = $n > 0 ? intdiv($order->unidades, $n) : 0;
-                $resto = $n > 0 ? $order->unidades % $n : 0;
-                foreach ($workerIds as $wIdx => $uid) {
-                    $wod->workers()->create([
-                        'user_id' => $uid,
-                        'piezas_asignadas' => $base + ($wIdx < $resto ? 1 : 0),
-                    ]);
-                }
-            }
-        };
-
-        $createOrder('V26-0001', 'Orden Taller 1',      'Constructora Norte', 'P-001', ['taller'], ['taller' => [$maria->id, $luis->id]]);
-        $createOrder('V26-0002', 'Orden Instalación 1', 'Hotel Marina',       'P-005', ['instalacion'], ['instalacion' => [$marcos->id]]);
-        $createOrder('V26-0003', 'Orden Mixta',         'Comercial López',    'P-003', ['taller', 'instalacion'], ['taller' => [$maria->id], 'instalacion' => [$marcos->id]]);
-
-        // ─── Generar más órdenes históricas + sesiones para que los gráficos tengan datos ───
-        $clientes = ['Edificios Mediterráneo', 'Restaurante La Plaza', 'Centro Comercial Sur', 'Aeropuerto Norte',
-                     'Hospital San Juan', 'Hotel Vista Mar', 'Naves Industriales SA', 'Polideportivo Municipal',
-                     'Oficinas TechHub', 'Residencial Las Acacias', 'Bodega del Valle', 'Fábrica Textil Norte'];
-        $piezaCodes = array_keys($piezas);
-        $trabajadores = [$maria, $luis, $marcos];
-        $deptCombos = [['taller'], ['instalacion'], ['taller', 'instalacion']];
-        $prioridades = ['baja', 'media', 'alta'];
-
-        // 12 órdenes adicionales históricas
-        for ($i = 4; $i <= 15; $i++) {
-            $codigo = sprintf('V26-%04d', $i);
-            $tipo = $deptCombos[($i - 1) % 3];
-            $piezaCode = $piezaCodes[($i - 1) % count($piezaCodes)];
-            $cliente = $clientes[($i - 1) % count($clientes)];
-            $daysAgo = rand(2, 28);
-            $duration = rand(5, 14);
-
-            $order = WorkOrder::create([
-                'codigo_orden' => $codigo,
-                'nombre_orden' => "Pedido {$cliente}",
-                'fecha_inicio' => now()->subDays($daysAgo),
-                'fecha_fin' => now()->subDays($daysAgo)->addDays($duration),
-                'unidades' => rand(3, 25),
-                'pieza_id' => $piezas[$piezaCode]->id,
-                'prioridad' => $prioridades[array_rand($prioridades)],
-                'nombre_cliente' => $cliente,
-                'qr_codigo' => null,
-            ]);
-            $order->update(['qr_codigo' => url("/trabajador/ordenes/{$order->id}")]);
-
-            $workerIds = collect($trabajadores)->random(rand(1, 2))->pluck('id')->toArray();
-            $workersByDept = [];
-            foreach ($tipo as $slug) {
-                $workersByDept[$slug] = $workerIds;
-                $dept = Department::where('slug', $slug)->first();
-                $wod = $order->departments()->create(['department_id' => $dept->id]);
-                foreach ($dept->phases as $phase) {
-                    $wod->phases()->create(['phase_id' => $phase->id, 'is_active' => true]);
-                }
+                $pool = $slug === 'taller' ? $tallerWorkers : $instalWorkers;
+                $count = min(rand(1, 2), count($pool));
+                $workerIds = collect($pool)->random($count)->pluck('id')->toArray();
                 $n = count($workerIds);
                 $base = $n > 0 ? intdiv($order->unidades, $n) : 0;
                 $resto = $n > 0 ? $order->unidades % $n : 0;

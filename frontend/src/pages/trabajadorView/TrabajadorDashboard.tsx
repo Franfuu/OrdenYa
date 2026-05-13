@@ -41,6 +41,7 @@ export const TrabajadorDashboard: React.FC = () => {
             <Route path="ordenes/:id"   element={<TrabajadorWorkOrderDetail />} />
             <Route path="perfil"        element={<Profile />} />
             <Route path="/"             element={<Navigate to="ordenes" replace />} />
+            <Route path="*"             element={<Navigate to="/404" replace />} />
           </Routes>
         </div>
       </div>

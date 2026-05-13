@@ -99,3 +99,32 @@
   background-color: var(--primary-light);
   font-weight: 600;
 }
+
+/* ── Mobile ≤768px ── */
+@media (max-width: 768px) {
+  .active-jobs__header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.8rem;
+    margin-bottom: 1.25rem;
+  }
+  .active-jobs__title { font-size: 1.4rem; }
+
+  .active-jobs__filters {
+    overflow-x: auto;
+    margin-bottom: 1.25rem;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+  }
+  .active-jobs__filters::-webkit-scrollbar { display: none; }
+  .active-jobs__filter-btn {
+    flex-shrink: 0;
+    padding: 0.45rem 1rem;
+    font-size: 0.85rem;
+  }
+
+  .active-jobs__view-btn {
+    padding: 0.4rem 0.85rem;
+    font-size: 0.82rem;
+  }
+}

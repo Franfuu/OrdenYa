@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { QRCodeSVG } from "qrcode.react";
 import { useAuth } from "../../auth/authContext";
 import { workOrderService } from "../../services/workOrderService";
 import { Spinner } from "../../components/Spinner";
@@ -10,13 +9,6 @@ import type { WorkOrder } from "../../types/WorkOrder";
 import { isOrderFinalizada } from "../../types/WorkOrder";
 import { useWorkOrdersChannel } from "../../hooks/useWorkOrdersChannel";
 import "../adminView/WorkOrdersManager.css";
-
-const DEPT_COLORS: Record<string, string> = {
-  taller: "#534AB7", instalacion: "#1D9E75",
-};
-const DEPT_LABELS: Record<string, string> = {
-  taller: "Taller", instalacion: "Instalación",
-};
 
 const PAGE_SIZE = 15;
 type SortKey = "codigo_orden" | "nombre_orden" | "fecha_fin" | null;
@@ -178,26 +170,18 @@ export const TrabajadorWorkOrdersList: React.FC = () => {
                   <th className="sortable-th" onClick={() => handleSort("codigo_orden")}>
                     Código <SortIndicator col="codigo_orden" sortKey={sortKey} sortDir={sortDir} />
                   </th>
-                  <th>QR</th>
                   <th className="sortable-th" onClick={() => handleSort("nombre_orden")}>
                     Nombre <SortIndicator col="nombre_orden" sortKey={sortKey} sortDir={sortDir} />
                   </th>
-                  <th>Estado</th>
                   <th className="sortable-th" onClick={() => handleSort("fecha_fin")}>
                     Fecha límite <SortIndicator col="fecha_fin" sortKey={sortKey} sortDir={sortDir} />
                   </th>
-                  <th>Mis Departamentos</th>
                 </tr>
               </thead>
               <tbody>
                 {paginated.map(o => {
                   const finalizada = isOrderFinalizada(o);
                   const deadline = getDeadlineBadge(o.fecha_fin, finalizada);
-                  const myDepts = (o.departments ?? []).filter(d =>
-                    deptMatches(d.department?.slug ?? "") &&
-                    (d.workers ?? []).some(w => w.user_id === user?.id && !w.approved_at)
-                  );
-                  const qrValue = (o as any).qr_codigo ?? `${window.location.origin}/trabajador/ordenes/${o.id}`;
                   return (
                     <tr
                       key={o.id}
@@ -205,49 +189,18 @@ export const TrabajadorWorkOrdersList: React.FC = () => {
                       onClick={() => navigate(`${detailBasePath}/${o.id}`)}
                     >
                       <td className="work-orders-manager__code">{o.codigo_orden}</td>
-                      <td onClick={e => e.stopPropagation()}>
-                        <div
-                          title={`QR: ${o.codigo_orden}`}
-                          style={{
-                            width: 48, height: 48, padding: 4,
-                            background: "#fff", borderRadius: 8,
-                            display: "flex", alignItems: "center", justifyContent: "center",
-                            border: "1px solid var(--border-color)",
-                          }}
-                        >
-                          <QRCodeSVG value={qrValue} size={40} level="M" />
-                        </div>
-                      </td>
                       <td><strong>{o.nombre_orden}</strong></td>
-                      <td>
-                        <span className={`work-orders-manager__status-badge ${finalizada ? "work-orders-manager__status-badge--finalizada" : "work-orders-manager__status-badge--taller"}`}>
-                          {finalizada ? "Finalizada" : "En curso"}
-                        </span>
-                      </td>
                       <td>
                         {deadline
                           ? <span className={`deadline-badge ${deadline.cls}`}>{deadline.label}</span>
                           : <span className="deadline-badge deadline--none">Sin fecha</span>
                         }
                       </td>
-                      <td>
-                        <div style={{ display: "flex", gap: "0.3rem", flexWrap: "wrap" }}>
-                          {myDepts.length > 0 ? myDepts.map(d => {
-                            const slug = d.department?.slug ?? "";
-                            const color = DEPT_COLORS[slug] ?? "#6b7280";
-                            return (
-                              <span key={d.id} style={{ fontSize: "0.72rem", padding: "0.1rem 0.5rem", borderRadius: 999, background: `${color}20`, color, border: `1px solid ${color}40`, fontWeight: 600 }}>
-                                {DEPT_LABELS[slug] ?? slug}
-                              </span>
-                            );
-                          }) : <span style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>N/A</span>}
-                        </div>
-                      </td>
                     </tr>
                   );
                 })}
                 {filteredOrders.length === 0 && (
-                  <tr><td colSpan={6} className="work-orders-manager__empty">No se encontraron órdenes asignadas.</td></tr>
+                  <tr><td colSpan={3} className="work-orders-manager__empty">No se encontraron órdenes asignadas.</td></tr>
                 )}
               </tbody>
             </table>

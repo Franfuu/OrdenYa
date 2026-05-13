@@ -1,0 +1,142 @@
+/* ──────────────────────────────────────────────────────────
+   responsive-global.css
+   Cross-cutting responsive refinements for OrdenYa.
+   Loaded after index.css to override generic defaults.
+   ────────────────────────────────────────────────────────── */
+
+/* iOS prevent zoom on focus — inputs ≥ 16px on small screens */
+@media (max-width: 768px) {
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  input[type="search"],
+  input[type="tel"],
+  input[type="url"],
+  input[type="date"],
+  input[type="time"],
+  input[type="datetime-local"],
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
+
+/* Better touch targets on coarse pointers (touch devices) */
+@media (pointer: coarse) {
+  button,
+  a[role="button"],
+  .table-action-btn,
+  .pagination__btn {
+    min-height: 40px;
+  }
+}
+
+/* Tables: smooth horizontal scroll with edge fade */
+.table-container {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+/* Cards: tighten on small viewports */
+@media (max-width: 640px) {
+  .glass-card { padding: 0.95rem 1.05rem !important; }
+}
+@media (max-width: 400px) {
+  .glass-card { padding: 0.8rem 0.9rem !important; }
+}
+
+/* KPI "Próximas a vencer" buttons: text truncation on narrow screens */
+@media (max-width: 480px) {
+  .glass-card button > div:first-child {
+    flex-wrap: wrap;
+  }
+  .glass-card button > div:first-child strong {
+    font-size: 0.82rem !important;
+  }
+  .glass-card button > div:first-child > span {
+    font-size: 0.78rem !important;
+    max-width: 100%;
+  }
+}
+
+/* Section titles: scale down */
+@media (max-width: 480px) {
+  h1 { font-size: 1.5rem !important; line-height: 1.15; }
+  h2 { font-size: 1.25rem !important; line-height: 1.2; }
+  h3 { font-size: 1.05rem !important; }
+}
+
+/* Modern table: smaller cells on phone */
+@media (max-width: 640px) {
+  .modern-table th { padding: 0.5rem 0.6rem; font-size: 0.68rem; }
+  .modern-table td { padding: 0.6rem 0.6rem; font-size: 0.82rem; }
+}
+
+/* Avoid horizontal overflow caused by long codes / emails */
+.modern-table td,
+.modern-table th {
+  word-break: break-word;
+}
+
+/* Charts wrapper: keep them readable on tablet+ */
+@media (min-width: 1024px) {
+  .donut-chart__svg-wrap { width: 220px; }
+}
+
+/* Audit log items: stack on phone */
+@media (max-width: 560px) {
+  [data-audit-log] [data-audit-row] {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 0.25rem !important;
+  }
+  [data-audit-log] [data-audit-meta] {
+    align-self: stretch;
+    text-align: left !important;
+  }
+}
+
+/* Safari mobile: avoid bottom address bar covering content */
+.dashboard-content {
+  padding-bottom: max(var(--space-4), env(safe-area-inset-bottom, 0px));
+}
+
+/* Reduce motion preference */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Calendar / time picker icon — invertido en dark para que se vea */
+[data-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator,
+[data-theme="dark"] input[type="time"]::-webkit-calendar-picker-indicator,
+[data-theme="dark"] input[type="datetime-local"]::-webkit-calendar-picker-indicator,
+[data-theme="dark"] input[type="month"]::-webkit-calendar-picker-indicator,
+[data-theme="dark"] input[type="week"]::-webkit-calendar-picker-indicator,
+.dark input[type="date"]::-webkit-calendar-picker-indicator,
+.dark input[type="time"]::-webkit-calendar-picker-indicator,
+.dark input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  filter: invert(1) brightness(1.2);
+  cursor: pointer;
+  opacity: 0.85;
+}
+
+/* Print-friendly */
+@media print {
+  .sidebar,
+  .topbar__hamburger,
+  .topbar__theme-btn,
+  .floating-timer-card,
+  .notif-dropdown,
+  .pagination,
+  .sidebar__backdrop { display: none !important; }
+  .dashboard-content { padding: 0 !important; overflow: visible !important; }
+  .glass-card { box-shadow: none !important; border: 1px solid #ccc !important; }
+}

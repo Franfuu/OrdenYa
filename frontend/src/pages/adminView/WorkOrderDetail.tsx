@@ -52,9 +52,15 @@ export const WorkOrderDetail: React.FC = () => {
     setLoading(true);
     workOrderService.get(Number(id))
       .then(data => { setOrder(data); setError(null); })
-      .catch(err => setError(err.response?.data?.message || err.message || "Error al cargar"))
+      .catch(err => {
+        if (err?.response?.status === 404) {
+          navigate("/404", { replace: true });
+          return;
+        }
+        setError(err.response?.data?.message || err.message || "Error al cargar");
+      })
       .finally(() => setLoading(false));
-  }, [id]);
+  }, [id, navigate]);
 
   const handleReopen = async () => {
     if (!order) return;
@@ -420,10 +426,12 @@ export const WorkOrderDetail: React.FC = () => {
               <thead>
                 <tr style={{ borderBottom: "1px solid var(--border, #e2e8f0)" }}>
                   <th style={{ textAlign: "left", padding: "0.5rem" }}>Trabajador</th>
+                  <th style={{ textAlign: "left", padding: "0.5rem" }}>Fase</th>
                   <th style={{ textAlign: "left", padding: "0.5rem" }}>Inicio</th>
                   <th style={{ textAlign: "left", padding: "0.5rem" }}>Fin</th>
                   <th style={{ textAlign: "right", padding: "0.5rem" }}>Duración</th>
                   <th style={{ textAlign: "right", padding: "0.5rem" }}>Piezas</th>
+                  <th style={{ textAlign: "left", padding: "0.5rem", minWidth: 180 }}>Notas</th>
                 </tr>
               </thead>
               <tbody>
@@ -431,13 +439,20 @@ export const WorkOrderDetail: React.FC = () => {
                   const dur = s.duration_in_seconds ?? 0;
                   const h = Math.floor(dur / 3600);
                   const m = Math.floor((dur % 3600) / 60);
+                  const deptName = s.work_order_department?.department?.name;
+                  const phaseName = s.work_order_phase?.phase?.name;
+                  const faseLabel = [deptName, phaseName].filter(Boolean).join(" · ") || "—";
                   return (
                     <tr key={s.id} style={{ borderBottom: "1px solid var(--border-subtle, #f1f5f9)" }}>
                       <td style={{ padding: "0.5rem" }}>{s.user?.name ?? `#${s.user_id}`}</td>
+                      <td style={{ padding: "0.5rem", fontSize: "0.8rem", color: "var(--text-secondary)" }}>{faseLabel}</td>
                       <td style={{ padding: "0.5rem" }}>{s.start_time ? new Date(s.start_time).toLocaleString("es-ES", { dateStyle: "short", timeStyle: "short" }) : "—"}</td>
                       <td style={{ padding: "0.5rem" }}>{s.end_time ? new Date(s.end_time).toLocaleString("es-ES", { dateStyle: "short", timeStyle: "short" }) : <span style={{ color: "#10b981", fontWeight: 600 }}>● Activa</span>}</td>
                       <td style={{ padding: "0.5rem", textAlign: "right" }}>{s.end_time ? `${h}h ${m}m` : "—"}</td>
                       <td style={{ padding: "0.5rem", textAlign: "right" }}>{s.piezas ?? 0}</td>
+                      <td style={{ padding: "0.5rem", fontSize: "0.82rem", color: s.notas ? "var(--text-primary)" : "var(--text-secondary)", fontStyle: s.notas ? "normal" : "italic", whiteSpace: "pre-wrap", maxWidth: 280 }}>
+                        {s.notas || "—"}
+                      </td>
                     </tr>
                   );
                 })}

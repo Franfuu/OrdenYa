@@ -456,11 +456,22 @@
   justify-content: flex-end;
 }
 
-@media (max-width: 720px) {
+@media (max-width: 1023px) {
+  .wo-detail { gap: 1rem; }
+  .wo-detail__hero-card { padding: 1.1rem 1.25rem; gap: 1rem; }
   .wo-detail__body { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 720px) {
   .wo-detail__hero-body { flex-direction: column; }
   .wo-detail__hero-right { flex-direction: row; align-self: stretch; justify-content: center; }
   .wo-detail__hero-image { width: 100%; height: 180px; }
   .wo-detail__hero-topbar { flex-wrap: wrap; }
   .wo-detail__hero-actions { flex-wrap: wrap; }
+  .wo-detail__hero-actions .wo-detail__action-btn {
+    flex: 1 1 calc(50% - 0.25rem);
+    justify-content: center;
+    min-height: 40px;
+  }
+  .wo-detail__back-btn { width: 100%; justify-content: center; }
 }

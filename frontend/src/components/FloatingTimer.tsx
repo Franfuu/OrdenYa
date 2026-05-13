@@ -59,7 +59,7 @@ export const FloatingTimer: React.FC = () => {
   const s = (elapsed % 60).toString().padStart(2, "0");
 
   return (
-    <div style={{
+    <div className="floating-timer-card" style={{
       position: "fixed",
       bottom: 20,
       right: 20,
@@ -83,6 +83,17 @@ export const FloatingTimer: React.FC = () => {
         @keyframes blink-dot {
           0%, 100% { opacity: 1; }
           50% { opacity: 0.3; }
+        }
+        @media (max-width: 480px) {
+          .floating-timer-card {
+            left: 8px !important;
+            right: 8px !important;
+            bottom: 8px !important;
+            min-width: 0 !important;
+            padding: 0.6rem 0.85rem !important;
+            gap: 0.6rem !important;
+          }
+          .floating-timer-card > div:last-child { font-size: 1.1rem !important; }
         }
       `}</style>
       <div style={{

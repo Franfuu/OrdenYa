@@ -4,6 +4,7 @@ import { useAuth } from "../../auth/authContext";
 import { useMobileNav } from "../../context/MobileNavContext";
 import { LogoutIcon } from "../Icons";
 import { OrdenYaWordmark } from "../OrdenYaWordmark";
+import { InstallPWAButton } from "../InstallPWAButton";
 import "./Sidebar.css";
 
 interface SidebarLink {
@@ -70,8 +71,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ links }) => {
         ))}
       </nav>
 
-      {/* Logout */}
+      {/* Install + Logout */}
       <div className="sidebar__logout">
+        <div className="sidebar__install"><InstallPWAButton /></div>
         <button onClick={logout} className="sidebar__logout-btn" aria-label="Cerrar sesión">
           <LogoutIcon size={17} aria-hidden="true" />
           <span className="sidebar__logout-label">Cerrar Sesión</span>

@@ -29,6 +29,8 @@ class WorkOrderController extends Controller
             'departments.phases.phase',
             'departments.workers.user',
             'workSessions.user',
+            'workSessions.workOrderDepartment.department',
+            'workSessions.workOrderPhase.phase',
         ];
     }
 
@@ -202,6 +204,7 @@ class WorkOrderController extends Controller
 
             AuditLog::log(request()->user()?->id, 'created', 'WorkOrder', $workOrder->id, "Orden {$workOrder->codigo_orden} creada");
             $this->notifyAssignedWorkers($workOrder, "Nueva orden asignada: {$workOrder->codigo_orden}");
+            $this->notifySupervisorsOfOrder($workOrder);
 
             $workOrder->load($this->orderWith());
             $this->broadcastChange('created', $workOrder->id);
@@ -330,6 +333,35 @@ class WorkOrderController extends Controller
                 'title' => $title,
                 'body' => $workOrder->nombre_orden,
                 'link' => "/trabajador/ordenes",
+            ]);
+        }
+    }
+
+    private function notifySupervisorsOfOrder(WorkOrder $workOrder): void
+    {
+        $deptNames = $workOrder->departments
+            ->map(fn ($d) => strtolower((string) ($d->department?->name)))
+            ->filter()
+            ->values();
+        if ($deptNames->isEmpty()) return;
+
+        $matches = function (?string $userDept) use ($deptNames): bool {
+            $d = strtolower((string) $userDept);
+            if ($d === '') return false;
+            if ($d === 'instalación') $d = 'instalacion';
+            return $deptNames->contains(fn ($n) => str_starts_with($n, 'instal') ? ($d === 'instalacion') : ($n === $d));
+        };
+
+        $supervisors = User::where('role', 'supervisor')->get();
+        foreach ($supervisors as $sup) {
+            if (! $matches($sup->departamento)) continue;
+            Notification::create([
+                'user_id' => $sup->id,
+                'type'    => 'order_created',
+                'title'   => "Nueva orden: {$workOrder->codigo_orden}",
+                'body'    => "Asigna trabajadores a esta orden.",
+                'link'    => "/supervisor/ordenes/editar/{$workOrder->id}",
+                'data'    => ['work_order_id' => $workOrder->id],
             ]);
         }
     }
