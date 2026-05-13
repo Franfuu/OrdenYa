@@ -1,9 +1,19 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { OrdenYaWordmark } from '../components/OrdenYaWordmark';
 import './LandingPage.css';
 
 const LandingPage: React.FC = () => {
+  useEffect(() => {
+    const prev = document.body.style.backgroundColor;
+    document.body.style.backgroundColor = '#0b0a1d';
+    document.documentElement.style.backgroundColor = '#0b0a1d';
+    return () => {
+      document.body.style.backgroundColor = prev;
+      document.documentElement.style.backgroundColor = '';
+    };
+  }, []);
+
   return (
     <div className="landing">
       <div className="landing__bg" />

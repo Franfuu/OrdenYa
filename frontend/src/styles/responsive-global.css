@@ -4,6 +4,9 @@
    Loaded after index.css to override generic defaults.
    ────────────────────────────────────────────────────────── */
 
+/* Prevent any horizontal scroll on small screens */
+html, body { overflow-x: hidden; max-width: 100vw; }
+
 /* iOS prevent zoom on focus — inputs ≥ 16px on small screens */
 @media (max-width: 768px) {
   input[type="text"],
