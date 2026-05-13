@@ -62,38 +62,63 @@ export const FloatingTimer: React.FC = () => {
     <div className="floating-timer-card" style={{
       position: "fixed",
       bottom: 20,
+      left: 20,
       right: 20,
+      maxWidth: 460,
+      marginLeft: "auto",
+      marginRight: "auto",
       zIndex: 50,
       background: "linear-gradient(135deg, #10b981, #059669)",
       color: "white",
-      padding: "0.8rem 1.2rem",
-      borderRadius: 12,
-      boxShadow: "0 10px 30px rgba(16, 185, 129, 0.4)",
+      padding: "1rem 1.3rem",
+      borderRadius: 14,
+      boxShadow: "0 14px 40px rgba(16, 185, 129, 0.45)",
       display: "flex",
       alignItems: "center",
-      gap: "0.8rem",
-      minWidth: 240,
+      gap: "1rem",
       animation: "pulse-shadow 0.5s infinite",
     }}>
       <style>{`
         @keyframes pulse-shadow {
-          0%, 100% { box-shadow: 0 10px 30px rgba(16, 185, 129, 0.4); }
-          50% { box-shadow: 0 10px 30px rgba(16, 185, 129, 0.7); }
+          0%, 100% { box-shadow: 0 14px 40px rgba(16, 185, 129, 0.45); }
+          50% { box-shadow: 0 14px 40px rgba(16, 185, 129, 0.7); }
         }
         @keyframes blink-dot {
           0%, 100% { opacity: 1; }
           50% { opacity: 0.3; }
         }
-        @media (max-width: 480px) {
+        @media (max-width: 768px) {
           .floating-timer-card {
-            left: 8px !important;
-            right: 8px !important;
-            bottom: 8px !important;
-            min-width: 0 !important;
-            padding: 0.6rem 0.85rem !important;
-            gap: 0.6rem !important;
+            left: 0 !important;
+            right: 0 !important;
+            bottom: 0 !important;
+            max-width: none !important;
+            margin: 0 !important;
+            padding: 1.1rem 1.25rem calc(1.1rem + env(safe-area-inset-bottom, 0px)) !important;
+            gap: 1rem !important;
+            border-radius: 0 !important;
+            z-index: 70 !important;
+            box-shadow: 0 -10px 30px rgba(16, 185, 129, 0.5) !important;
           }
-          .floating-timer-card > div:last-child { font-size: 1.1rem !important; }
+          .floating-timer-card > div:last-child {
+            font-size: 1.55rem !important;
+            font-weight: 900 !important;
+          }
+          .floating-timer-card > div:nth-child(2) span:first-child {
+            font-size: 0.72rem !important;
+          }
+          .floating-timer-card > div:nth-child(2) span:last-child {
+            font-size: 1.02rem !important;
+          }
+          /* Cuando el timer flotante está activo, ocultar la barra Acceso Rápido */
+          body:has(.floating-timer-card) .ordenes-timer__quick { display: none !important; }
+        }
+        @media (max-width: 420px) {
+          .floating-timer-card {
+            padding: 0.95rem 1.05rem calc(0.95rem + env(safe-area-inset-bottom, 0px)) !important;
+            gap: 0.75rem !important;
+          }
+          .floating-timer-card > div:last-child { font-size: 1.35rem !important; }
         }
       `}</style>
       <div style={{

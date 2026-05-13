@@ -888,37 +888,76 @@
 
 /* ── Mobile ≤768px ── */
 @media (max-width: 768px) {
-  .ordenes-timer { gap: 0.85rem; padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px)); }
+  .ordenes-timer { gap: 0.85rem; padding-bottom: calc(6rem + env(safe-area-inset-bottom, 0px)); }
 
   .ordenes-timer__header {
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.5rem;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.6rem;
   }
   .ordenes-timer__title { font-size: 1.3rem; }
 
-  /* Header actions → barra fija inferior */
   .ordenes-timer__header-actions {
-    position: fixed;
-    left: 0; right: 0; bottom: 0;
-    margin: 0;
-    padding: 0.6rem 0.85rem calc(0.6rem + env(safe-area-inset-bottom, 0px));
-    background: color-mix(in srgb, var(--card-bg) 88%, transparent);
-    -webkit-backdrop-filter: blur(14px);
-    backdrop-filter: blur(14px);
-    border-top: 1px solid var(--border-color);
-    box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.18);
-    z-index: 60;
+    flex-direction: row;
     gap: 0.5rem;
     flex-wrap: nowrap;
   }
   .ordenes-timer__hdr-btn {
     flex: 1;
-    min-height: 44px;
+    min-height: 42px;
     justify-content: center;
     font-size: 0.88rem;
-    padding: 0.55rem 0.8rem;
+    padding: 0.5rem 0.7rem;
+  }
+
+  /* Acceso Rápido → barra fija inferior */
+  .ordenes-timer__quick {
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    margin: 0;
+    border-radius: 0;
+    padding: 0.7rem 0.6rem calc(0.7rem + env(safe-area-inset-bottom, 0px));
+    background: color-mix(in srgb, var(--card-bg) 94%, transparent);
+    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(16px);
+    border-top: 1px solid var(--border-color);
+    box-shadow: 0 -10px 28px rgba(0, 0, 0, 0.22);
+    z-index: 60;
+  }
+  .ordenes-timer__quick-title { display: none; }
+  .ordenes-timer__quick-grid {
+    flex-direction: row !important;
+    justify-content: space-around;
+    gap: 0.35rem !important;
+  }
+  .ordenes-timer__generic-btn {
+    flex: 1 1 0;
+    flex-direction: column !important;
+    justify-content: center;
+    align-items: center;
+    gap: 0.35rem !important;
+    padding: 0.5rem 0.3rem !important;
+    min-width: 0;
+    border: none !important;
+    background: transparent !important;
+  }
+  .ordenes-timer__generic-btn:hover { transform: none !important; box-shadow: none !important; }
+  .ordenes-timer__generic-btn .generic-btn-icon {
+    width: 46px !important;
+    height: 46px !important;
+    border-radius: 14px !important;
+    background: linear-gradient(135deg, rgba(83,74,183,0.22), rgba(239,159,39,0.14)) !important;
+    border: 1px solid rgba(83,74,183,0.35) !important;
+  }
+  .ordenes-timer__generic-btn .generic-btn-icon svg { width: 22px; height: 22px; }
+  .ordenes-timer__generic-btn .generic-btn-text {
+    font-size: 0.74rem !important;
+    line-height: 1.15;
+    font-weight: 600;
+  }
+  .ordenes-timer__generic-btn:active .generic-btn-icon {
+    background: linear-gradient(135deg, rgba(83,74,183,0.4), rgba(239,159,39,0.25)) !important;
+    border-color: var(--amber) !important;
   }
 
   .ordenes-timer__banner {
@@ -965,25 +1004,103 @@
   }
   .ordenes-timer__btn { width: 42px; height: 42px; }
 
-  .ordenes-timer__stop-input { gap: 0.5rem; }
-  .ordenes-timer__pieces-field { width: 100px; }
-  .ordenes-timer__input-wrap { order: 5; flex: 1 1 100%; }
-
-  .ordenes-timer__quick { padding: 1rem 1rem; }
-  .ordenes-timer__quick-grid {
+  /* Stop/Pause input → modal centrado con overlay (UNA sola caja) */
+  .ordenes-timer__input-wrap {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    transform: none !important;
+    width: auto;
+    height: 100%;
+    z-index: 1001;
+    padding: 1rem !important;
+    background: rgba(13, 10, 31, 0.62) !important;
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    gap: 0 !important;
+    flex: none !important;
+    overflow-y: auto;
+    animation: ot-modal-fade 0.18s ease;
+  }
+  @keyframes ot-modal-fade {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  .ordenes-timer__modal-box {
+    background: var(--card-bg);
+    width: min(92vw, 380px);
+    max-height: 88vh;
+    overflow-y: auto;
+    border-radius: 16px;
+    padding: 1.5rem 1.35rem;
+    box-shadow: 0 28px 64px rgba(0, 0, 0, 0.5), 0 0 0 1px var(--border-color);
+    display: flex;
     flex-direction: column;
-    gap: 0.6rem;
+    gap: 1rem;
+    animation: ot-modal-rise 0.22s cubic-bezier(0.16, 1, 0.3, 1);
   }
-  .ordenes-timer__generic-btn {
-    flex-direction: row;
-    justify-content: flex-start;
-    gap: 0.85rem;
-    padding: 0.85rem 1rem;
-    min-width: 0;
+  @keyframes ot-modal-rise {
+    from { opacity: 0; transform: translateY(12px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
   }
-  .ordenes-timer__generic-btn .generic-btn-icon {
-    width: 42px;
-    height: 42px;
+  .ordenes-timer__modal-question {
+    text-align: center;
+    font-size: 1rem !important;
+    font-weight: 700;
+    color: var(--text-primary);
+    padding: 0.15rem 0 0.2rem;
+  }
+  .ordenes-timer__stop-input {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.6rem !important;
+    animation: none !important;
+  }
+  .ordenes-timer__modal-notas {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding-top: 0.85rem;
+    border-top: 1px solid var(--border-color);
+  }
+  .ordenes-timer__pieces-field {
+    width: 100% !important;
+    min-height: 48px;
+    font-size: 1.1rem;
+  }
+  .ordenes-timer__btn-confirm {
+    width: 100%;
+    min-height: 50px;
+    font-size: 1rem;
+    padding: 0.8rem 1rem;
+  }
+  .ordenes-timer__btn-cancel {
+    width: 100%;
+    min-height: 48px;
+    font-size: 0.95rem;
+    padding: 0.7rem 1rem;
+    border: 1.5px solid var(--border-color) !important;
+    color: var(--text-primary) !important;
+    background: var(--bg) !important;
+  }
+  .ordenes-timer__notas-input {
+    width: 100%;
+    min-height: 64px;
+    font-size: 0.95rem !important;
+    resize: vertical;
   }
 
   .ordenes-timer__modal { padding: 1.25rem; }

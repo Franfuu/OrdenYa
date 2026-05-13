@@ -534,37 +534,38 @@ export const TrabajadorOrdenes: React.FC = () => {
                     const needsPiezas = phaseNeedsPiezas(activePhase) && !generic;
                     return (
                       <div className="ordenes-timer__input-wrap">
-                        <div className="ordenes-timer__stop-input">
-                          {needsPiezas ? (
-                            <>
-                              <input
-                                type="number" min={0} placeholder="Piezas"
-                                value={piezasInput}
-                                onChange={e => { setPiezasInput(e.target.value); setPiezasError(""); }}
-                                className="ordenes-timer__pieces-field"
-                              />
-                              {piezasError && <span style={{ fontSize: '0.75rem', color: '#ef4444' }}>{piezasError}</span>}
-                            </>
-                          ) : (
-                            <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
-                              ¿Confirmar {inputMode === 'pause' ? 'pausar' : 'finalizar'}?
-                            </span>
-                          )}
-                          <button className="ordenes-timer__btn-confirm" onClick={() => handleConfirmAction(order)} disabled={loading_}>
-                            {inputMode === 'pause' ? 'Pausar' : 'Finalizar'}
-                          </button>
-                          <button className="ordenes-timer__btn-cancel" onClick={closeInput}>Cancelar</button>
-                        </div>
-                        <div style={{ display: "flex", gap: "0.4rem", alignItems: "flex-start" }}>
-                          <textarea
-                            placeholder="Notas (opcional)"
-                            value={notasInput}
-                            onChange={e => setNotasInput(e.target.value)}
-                            className="ordenes-timer__notas-input"
-                            rows={1}
-                            style={{ fontSize: '0.8rem', flex: 1 }}
-                          />
-                          <VoiceInput onResult={text => setNotasInput(prev => prev ? `${prev} ${text}` : text)} />
+                        <div className="ordenes-timer__modal-box">
+                          <div className="ordenes-timer__stop-input">
+                            {needsPiezas ? (
+                              <>
+                                <input
+                                  type="number" min={0} placeholder="Piezas"
+                                  value={piezasInput}
+                                  onChange={e => { setPiezasInput(e.target.value); setPiezasError(""); }}
+                                  className="ordenes-timer__pieces-field"
+                                />
+                                {piezasError && <span style={{ fontSize: '0.75rem', color: '#ef4444' }}>{piezasError}</span>}
+                              </>
+                            ) : (
+                              <span className="ordenes-timer__modal-question">
+                                ¿Confirmar {inputMode === 'pause' ? 'pausar' : 'finalizar'}?
+                              </span>
+                            )}
+                            <button className="ordenes-timer__btn-confirm" onClick={() => handleConfirmAction(order)} disabled={loading_}>
+                              {inputMode === 'pause' ? 'Pausar' : 'Finalizar'}
+                            </button>
+                            <button className="ordenes-timer__btn-cancel" onClick={closeInput}>Cancelar</button>
+                          </div>
+                          <div className="ordenes-timer__modal-notas">
+                            <textarea
+                              placeholder="Notas (opcional)"
+                              value={notasInput}
+                              onChange={e => setNotasInput(e.target.value)}
+                              className="ordenes-timer__notas-input"
+                              rows={2}
+                            />
+                            <VoiceInput onResult={text => setNotasInput(prev => prev ? `${prev} ${text}` : text)} />
+                          </div>
                         </div>
                       </div>
                     );
