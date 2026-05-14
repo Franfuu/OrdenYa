@@ -1,95 +1,232 @@
-# OrdenYa — Gestión de Órdenes de Trabajo
+<div align="center">
 
-> TFG · Laravel 12 (API) + React 19 + Vite (SPA) + MySQL.
-> Tres roles: **Administrador** · **Supervisor** · **Trabajador**.
+# OrdenYa
 
----
+### Sistema de Gestión de Órdenes de Trabajo en Tiempo Real
 
-## 📋 Requisitos previos en el PC
+**Trabajo de Fin de Grado** — Desarrollo de Aplicaciones Web
 
-| Herramienta | Versión mínima | Notas |
-|---|---|---|
-| **PHP** | 8.2 | Con extensiones `pdo_mysql`, `mbstring`, `openssl`, `tokenizer`, `xml`, `ctype`, `json`, `gd`, `fileinfo` |
-| **Composer** | 2.x | https://getcomposer.org/download/ |
-| **Node.js** | 18 LTS o superior | https://nodejs.org/ (incluye npm) |
-| **MySQL / MariaDB** | 8.0 / 10.4+ | Lo más cómodo: **XAMPP** (incluye Apache, MySQL y phpMyAdmin) — https://www.apachefriends.org/ |
-| **Git** (opcional) | cualquier | Si copias el proyecto vía clone |
+Laravel 12 · React 19 · MySQL 8 · WebSockets (Reverb) · PWA
 
-> 💡 Si ya tienes **XAMPP** instalado con `php` y `mysql` arrancando, no necesitas instalar nada más salvo Node.js y Composer.
+[![PHP](https://img.shields.io/badge/PHP-8.2-777BB4?logo=php&logoColor=white)](https://www.php.net)
+[![Laravel](https://img.shields.io/badge/Laravel-12-FF2D20?logo=laravel&logoColor=white)](https://laravel.com)
+[![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)](https://react.dev)
+[![Vite](https://img.shields.io/badge/Vite-7-646CFF?logo=vite&logoColor=white)](https://vitejs.dev)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
+[![MySQL](https://img.shields.io/badge/MySQL-8.0-4479A1?logo=mysql&logoColor=white)](https://www.mysql.com)
 
-### Comprobación rápida (PowerShell o CMD)
+**Demostración en producción:** [orden-ya.vercel.app](https://orden-ya.vercel.app)
 
-```bash
-php -v
-composer -V
-node -v
-npm -v
-mysql --version
-```
-
-Todos deben devolver una versión, no "comando no reconocido".
+</div>
 
 ---
 
-## 🚀 Instalación paso a paso
+## Tabla de contenidos
 
-### 1. Copiar el proyecto al PC
+1. [Resumen del proyecto](#resumen-del-proyecto)
+2. [Objetivos](#objetivos)
+3. [Arquitectura](#arquitectura)
+4. [Stack tecnológico](#stack-tecnológico)
+5. [Estructura del repositorio](#estructura-del-repositorio)
+6. [Requisitos previos](#requisitos-previos)
+7. [Instalación local](#instalación-local)
+8. [Credenciales de demostración](#credenciales-de-demostración)
+9. [Flujo de uso por rol](#flujo-de-uso-por-rol)
+10. [Comunicación en tiempo real](#comunicación-en-tiempo-real)
+11. [Aplicación instalable (PWA)](#aplicación-instalable-pwa)
+12. [Despliegue en la nube](#despliegue-en-la-nube)
+13. [Seguridad](#seguridad)
+14. [Comandos útiles](#comandos-útiles)
+15. [Resolución de problemas](#resolución-de-problemas)
+16. [Lista de comprobación para la defensa](#lista-de-comprobación-para-la-defensa)
+17. [Licencia y autoría](#licencia-y-autoría)
 
-Si vas con USB:
+---
+
+## Resumen del proyecto
+
+**OrdenYa** es una aplicación web full-stack diseñada para digitalizar la gestión completa del ciclo de vida de las órdenes de trabajo en una empresa industrial. Sustituye los partes en papel y las hojas de cálculo dispersas por un sistema centralizado, multi-rol y con sincronización en tiempo real entre todos los puestos de trabajo.
+
+El sistema modela el flujo real de fábrica: una orden se descompone en **departamentos** (Taller, Instalación), cada uno con **fases secuenciales** (Cortar, Soldar, Pintar, etc.) y **trabajadores asignados** con cuotas individuales de piezas. Los operarios fichan tiempo en cada fase mediante cronómetro o escaneo de código QR; los supervisores aprueban los trabajos completados; los administradores gestionan usuarios, piezas y reciben analíticas agregadas.
+
+La aplicación es **instalable como Progressive Web App** en móvil, tablet o escritorio, y funciona con experiencia offline-first en las pantallas operativas.
+
+---
+
+## Objetivos
+
+| Nº | Objetivo                                                                      | Cumplimiento                                                                  |
+| --- | ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| O1  | Modelar el dominio de órdenes industriales con departamentos, fases y cuotas | Esquema en 3NF/BCNF con entidades débiles para asociaciones con atributos    |
+| O2  | Implementar autenticación robusta con tres roles diferenciados               | Sanctum Bearer + middleware `role:*` por endpoint                           |
+| O3  | Soportar fichaje de tiempo mediante cronómetro, entrada manual y escaneo QR  | `WorkSession` con play/pause/stop, manual session y acceso a cámara        |
+| O4  | Sincronizar datos entre usuarios en tiempo real sin recargar                  | Laravel Reverb (WebSockets) + Echo + protocolo Pusher                         |
+| O5  | Ofrecer una experiencia mobile-first instalable como aplicación nativa       | PWA con manifest, service worker e icono propio en el home                    |
+| O6  | Generar analíticas de productividad por usuario y orden                      | KPIs, gráficos de tendencia, donut por departamento, ranking de trabajadores |
+| O7  | Desplegar en infraestructura cloud gratuita y reproducible                    | Render (backend Docker) + Vercel (SPA) + Clever Cloud (MySQL)                 |
+
+---
+
+## Arquitectura
+
 ```
-C:\Users\TU_USUARIO\Desktop\OrdenYa\
-├── backend\
-└── frontend\
++---------------------+    HTTPS / WSS     +---------------------+    TCP 3306    +---------------------+
+|   Navegador / PWA   | <----------------> |  Backend Laravel 12 | <------------> |  MySQL 8 (Clever)   |
+|   React 19 + Vite   |   REST + Sanctum   |  PHP 8.2 + Reverb   |     PDO        |  Esquema relacional |
+|   SPA + Service WK  |                    |  WebSocket :8080    |                |  10 entidades       |
++---------------------+                    +---------------------+                +---------------------+
+        |                                            |
+        |  Eventos broadcast                         |
+        v                                            v
++---------------------+                    +---------------------+
+|  Canal privado      |                    |  AuditLog +         |
+|  App.Models.User.id |                    |  Notification queue |
++---------------------+                    +---------------------+
 ```
 
-O con Git:
+**Patrón arquitectónico:** SPA desacoplada + API REST stateless + canal WebSocket para eventos push.
+
+- **Backend** estructurado en capas: Controllers (HTTP) → Models (Eloquent / dominio) → Migrations (esquema).
+- **Frontend** organizado por responsabilidades: Pages → Services (axios) → Context (estado global) → Components.
+
+Los diagramas formales (entidad-relación, casos de uso, clases UML) se encuentran en el capítulo 4 de la memoria del TFG.
+
+---
+
+## Stack tecnológico
+
+### Backend
+
+| Capa              | Tecnología             | Justificación                                            |
+| ----------------- | ----------------------- | --------------------------------------------------------- |
+| Lenguaje          | PHP 8.2                 | Tipado estricto, enumerados nativos, propiedades readonly |
+| Framework         | Laravel 12              | Eloquent ORM maduro, ecosistema, productividad            |
+| Autenticación    | Laravel Sanctum 4       | Bearer tokens stateless, idóneo para SPA + PWA           |
+| WebSockets        | Laravel Reverb 1.10     | Servidor WebSocket nativo, protocolo Pusher               |
+| Base de datos     | MySQL 8 / MariaDB 10.4+ | Estándar industrial, soporte JSON, transacciones         |
+| Testing           | PHPUnit 11              | Cobertura unitaria y de funcionalidad                     |
+| Estilo de código | Laravel Pint            | Cumplimiento PSR-12 automatizado                          |
+
+### Frontend
+
+| Capa              | Tecnología                 | Justificación                                          |
+| ----------------- | --------------------------- | ------------------------------------------------------- |
+| Librería UI      | React 19                    | Hooks, características concurrentes, ecosistema        |
+| Lenguaje          | TypeScript 5                | Tipado estático, refactors seguros                     |
+| Bundler           | Vite 7                      | Hot Module Replacement instantáneo, builds optimizados |
+| Routing           | React Router 7              | Estándar SPA, lazy routes                              |
+| Cliente HTTP      | Axios 1.13                  | Interceptores para autenticación y manejo de errores   |
+| WebSocket cliente | Laravel Echo + pusher-js    | Cliente oficial para Reverb                             |
+| Gráficos         | Recharts 3                  | Componentes SVG declarativos                            |
+| QR                | html5-qrcode + qrcode.react | Lectura mediante cámara y generación                  |
+| Notificaciones    | Sileo + Sonner              | Toasts in-app                                           |
+| Generación PDF   | jsPDF + autotable           | Exportación de partes de trabajo                       |
+| Diagrama Gantt    | frappe-gantt                | Vista cronológica de órdenes                          |
+
+### Infraestructura
+
+| Servicio             | Plataforma                    | Coste                                     |
+| -------------------- | ----------------------------- | ----------------------------------------- |
+| Frontend estático   | Vercel (Hobby)                | Gratuito                                  |
+| Backend API + Reverb | Render (Web Service Docker)   | Gratuito (sleep tras 15 min sin tráfico) |
+| Base de datos        | Clever Cloud MySQL (plan DEV) | Gratuito (10 MB)                          |
+| Repositorio          | GitHub                        | Gratuito                                  |
+
+---
+
+## Estructura del repositorio
+
+```
+OrdenYa/
+├── backend/                      API REST Laravel 12  — ver backend/README.md
+│   ├── app/
+│   │   ├── Http/Controllers/     AuthController, WorkOrderController, etc.
+│   │   ├── Models/               Eloquent: User, WorkOrder, WorkSession, ...
+│   │   ├── Events/               Broadcasting de cambios
+│   │   └── Http/Middleware/      EnsureRole
+│   ├── database/
+│   │   ├── migrations/           Esquema completo (14 migraciones)
+│   │   └── seeders/              Datos demo (6 usuarios, 15 órdenes, ~90 sesiones)
+│   ├── routes/api.php            Endpoints REST
+│   ├── config/                   broadcasting, sanctum, cors, queue, ...
+│   ├── tests/                    Feature + Unit
+│   └── Dockerfile                Despliegue en Render
+│
+├── frontend/                     SPA React 19  — ver frontend/README.md
+│   ├── public/
+│   │   ├── manifest.webmanifest  Configuración PWA
+│   │   ├── sw.js                 Service Worker
+│   │   └── logo_ordenya_pro.svg
+│   ├── src/
+│   │   ├── pages/                adminView/, supervisorView/, trabajadorView/, shared/
+│   │   ├── components/           Sidebar, FloatingTimer, QRScanner, ...
+│   │   ├── services/             Capa axios (un archivo por recurso)
+│   │   ├── context/              AuthContext, ThemeContext, MobileNavContext
+│   │   ├── hooks/                useWorkOrdersChannel, ...
+│   │   ├── routing/              PrivateRoute, RoleRoute
+│   │   └── utils/                errorHelper, dateHelper, ...
+│   └── vite.config.js
+│
+├── README.md                     Este archivo
+├── Deploy.md                     Guía completa de despliegue cloud
+├── iniciar_proyecto.bat          Script Windows: arranca backend + reverb + frontend
+└── stop.bat                      Script Windows: detiene los procesos
+```
+
+---
+
+## Requisitos previos
+
+| Herramienta     | Versión mínima   | Notas                                                                                                                   |
+| --------------- | ------------------ | ----------------------------------------------------------------------------------------------------------------------- |
+| PHP             | 8.2                | Extensiones:`pdo_mysql`, `mbstring`, `openssl`, `tokenizer`, `xml`, `ctype`, `json`, `gd`, `fileinfo` |
+| Composer        | 2.x                | https://getcomposer.org/download/                                                                                       |
+| Node.js         | 18 LTS o superior  | https://nodejs.org (incluye npm)                                                                                        |
+| MySQL / MariaDB | 8.0 / 10.4+        | Recomendado:**XAMPP** — https://www.apachefriends.org                                                            |
+| Git             | Cualquier versión | Para clonar el repositorio                                                                                              |
+
+Comprobación rápida:
+
 ```bash
-cd C:\Users\TU_USUARIO\Desktop
-git clone <url-del-repo> OrdenYa
+php -v && composer -V && node -v && npm -v && mysql --version
 ```
 
-### 2. Arrancar MySQL (XAMPP)
+---
 
-1. Abre **XAMPP Control Panel**
-2. Click en **Start** junto a **MySQL**
-3. Click en **Admin** junto a MySQL → abre phpMyAdmin
-4. Crea una base de datos llamada `ordenes_trabajo`:
-   - **Nombre**: `ordenes_trabajo`
-   - **Cotejamiento**: `utf8mb4_unicode_ci`
+## Instalación local
+
+### 1. Obtener el código
+
+```bash
+git clone https://github.com/Franfuu/OrdenYa.git
+cd OrdenYa
+```
+
+### 2. Arrancar MySQL y crear la base de datos
+
+Desde XAMPP Control Panel: **Start** en MySQL → **Admin** (abre phpMyAdmin) → crear base de datos `ordenes_trabajo` con cotejamiento `utf8mb4_unicode_ci`.
 
 Alternativa por consola:
-```bash
-mysql -u root -p
-> CREATE DATABASE ordenes_trabajo CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-> exit
+
+```sql
+CREATE DATABASE ordenes_trabajo CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 ```
 
-### 3. Configurar el Backend (Laravel)
+### 3. Backend
 
 ```bash
 cd backend
 composer install
+copy .env.example .env       # Linux/Mac: cp .env.example .env
+php artisan key:generate
+php artisan migrate:fresh --seed
+php artisan storage:link
+php artisan serve --host=127.0.0.1 --port=8000
 ```
 
-Esto instalará todas las dependencias PHP (~150MB en `vendor/`).
-
-#### Crear el archivo `.env`
-
-Copia el ejemplo:
-```bash
-copy .env.example .env
-```
-
-Edita `backend\.env` y deja la sección de DB así:
+Edita `backend/.env` con las credenciales de tu base de datos si difieren de las predeterminadas:
 
 ```env
-APP_NAME=OrdenYa
-APP_ENV=local
-APP_KEY=
-APP_DEBUG=true
-APP_URL=http://localhost:8000
-APP_LOCALE=es
-
 DB_CONNECTION=mysql
 DB_HOST=127.0.0.1
 DB_PORT=3306
@@ -98,192 +235,105 @@ DB_USERNAME=root
 DB_PASSWORD=
 ```
 
-> Si tu MySQL tiene contraseña para root, ponla en `DB_PASSWORD`.
+La API queda disponible en **http://localhost:8000**. Mantén la terminal abierta.
 
-#### Generar APP_KEY y migrar la base de datos
+### 4. WebSockets (opcional, recomendado)
 
-```bash
-php artisan key:generate
-php artisan migrate:fresh --seed
-```
-
-El último comando crea **todas las tablas** y **rellena los datos demo**:
-- 6 usuarios (1 admin, 2 supervisores, 3 trabajadores)
-- 8 piezas de catálogo
-- 15 órdenes de trabajo
-- ~90 sesiones distribuidas en los últimos 30 días
-- Notificaciones, comentarios y registros de auditoría
-
-#### Crear carpeta de almacenamiento público
+En otra terminal:
 
 ```bash
-php artisan storage:link
+cd backend
+php artisan reverb:start
 ```
 
-Esto genera el symlink `public/storage` → `storage/app/public` para servir fotos de piezas y órdenes.
+Servidor WebSocket en **localhost:8080**.
 
-#### Arrancar el servidor backend
+### 5. Frontend
 
-```bash
-php artisan serve --host=127.0.0.1 --port=8000
-```
-
-✅ La API queda escuchando en **http://localhost:8000**
-
-Deja esta ventana abierta. Abre otra terminal para el siguiente paso.
-
----
-
-### 4. Configurar el Frontend (React)
+En otra terminal:
 
 ```bash
 cd frontend
 npm install
 ```
 
-Esto instala las dependencias JS (~250MB en `node_modules/`). Tarda 1-3 minutos la primera vez.
-
-#### Crear el archivo `.env` del frontend
-
-Crea **`frontend\.env`** (sin nombre, sólo extensión) con este contenido:
+Crea el archivo `frontend/.env`:
 
 ```env
 VITE_API_URL=http://localhost:8000/api
+VITE_REVERB_APP_KEY=local-key
+VITE_REVERB_HOST=localhost
+VITE_REVERB_PORT=8080
+VITE_REVERB_SCHEME=http
 ```
 
-#### Arrancar el servidor de desarrollo
+Arrancar:
 
 ```bash
 npm run dev
 ```
 
-✅ La app queda en **http://localhost:5173**
+Aplicación disponible en **http://localhost:5173**.
+
+> **Atajo para Windows:** el script `start.bat` en la raíz lanza las tres terminales automáticamente.
 
 ---
 
-## 🔑 Credenciales demo
+## Credenciales de demostración
 
-Todas con contraseña `admin123`:
+Contraseña común: `admin123`
 
-| Rol | Email |
-|---|---|
-| **Administrador** | `admin@admin.com` |
-| **Supervisor** | `carlos@supervisor.com` |
-| **Supervisor** | `ana@supervisor.com` |
-| **Trabajador** | `maria@trabajador.com` |
-| **Trabajador** | `luis@trabajador.com` |
-| **Trabajador** | `marcos@trabajador.com` |
-
----
-
-## 📱 Instalar como app (PWA) en móvil o tablet
-
-Una vez que tengas el frontend corriendo, abre la URL desde el navegador del dispositivo en la misma red Wi-Fi:
-
-- **Android (Chrome / Edge)**: pulsa el botón ámbar **"Instalar app"** que aparece arriba a la derecha, o usa el menú → "Instalar app".
-- **iOS / iPad (Safari)**: botón compartir (↑) → "Añadir a pantalla de inicio".
-
-La app se abrirá fullscreen, sin barra del navegador. El icono OrdenYa aparece en el home.
-
-> Para acceder desde otro dispositivo en la misma red, reemplaza `localhost` por la IP local del PC (ej. `192.168.1.42:5173`) en el navegador del móvil. Y en `frontend/.env` pon `VITE_API_URL=http://192.168.1.42:8000/api`.
+| Rol                       | Email                     |
+| ------------------------- | ------------------------- |
+| Administrador             | `admin@admin.com`       |
+| Supervisor (Taller)       | `carlos@supervisor.com` |
+| Supervisor (Instalación) | `ana@supervisor.com`    |
+| Trabajador                | `maria@trabajador.com`  |
+| Trabajador                | `luis@trabajador.com`   |
+| Trabajador                | `marcos@trabajador.com` |
 
 ---
 
-## 🛠️ Estructura del proyecto
+## Flujo de uso por rol
 
-```
-OrdenYa/
-├── backend/                Laravel 12 API · puerto 8000
-│   ├── app/
-│   │   ├── Http/Controllers/
-│   │   │   ├── AuthController.php
-│   │   │   ├── WorkOrderController.php   # órdenes + sesiones + bulk + duplicar
-│   │   │   ├── UserController.php
-│   │   │   ├── PiezaController.php       # catálogo de piezas
-│   │   │   ├── CommentController.php
-│   │   │   ├── NotificationController.php
-│   │   │   └── AuditLogController.php
-│   │   └── Models/
-│   │       ├── User, WorkOrder, WorkSession
-│   │       ├── Department, Phase
-│   │       ├── WorkOrderDepartment, WorkOrderPhase, WorkOrderDepartmentWorker
-│   │       ├── Pieza, Comment, Notification, AuditLog
-│   ├── database/migrations/        # esquema completo
-│   ├── database/seeders/           # DatabaseSeeder con datos demo
-│   ├── lang/es/validation.php      # mensajes de validación en español
-│   └── routes/api.php
-│
-└── frontend/               React 19 + Vite · puerto 5173
-    ├── public/
-    │   ├── logo_ordenya_pro.svg    # logo oficial
-    │   ├── manifest.webmanifest    # PWA manifest
-    │   └── sw.js                   # Service Worker
-    ├── src/
-    │   ├── components/
-    │   │   ├── ConfirmDialog.tsx
-    │   │   ├── NotificationBell.tsx
-    │   │   ├── FloatingTimer.tsx
-    │   │   ├── QRScanner.tsx, VoiceInput.tsx
-    │   │   ├── InstallPWAButton.tsx
-    │   │   └── layout/Sidebar, Topbar
-    │   ├── context/                # Auth, Theme, MobileNav
-    │   ├── pages/
-    │   │   ├── LandingPage.tsx     # /
-    │   │   ├── Login.tsx           # /login
-    │   │   ├── adminView/          # 7 pantallas
-    │   │   ├── supervisorView/
-    │   │   ├── trabajadorView/
-    │   │   └── shared/             # KPIPanel, PiezasList, OrderComments, etc.
-    │   └── services/               # axios services
-    └── vite.config.js
-```
+### Administrador
 
----
+1. Panel de control: KPIs (órdenes activas, finalizadas, horas trabajadas), gráfico de tendencia mensual, donut por departamento y listado de órdenes próximas a vencer.
+2. **Crear orden**: código autogenerado `V26-NNNN`, selección de pieza del catálogo, asignación de departamentos y trabajadores. Las unidades se reparten automáticamente entre los trabajadores asignados.
+3. **Gestión de usuarios**: CRUD completo con guardas anti-self-delete y anti-último-administrador.
+4. **Catálogo de piezas** con foto.
+5. **Detalle de orden**: badge de prioridad, código QR escaneable, historial de auditoría y lista de sesiones.
 
-## 🎭 Flujo de trabajo demo
+### Supervisor
 
-### Como **Administrador**
-1. Login → llegas al **Panel de Control** con KPIs, gráfico de tendencia, donut de departamentos y lista de "Próximas a vencer".
-2. **Crear Orden**: código autogenerado (V26-NNNN), seleccionas pieza del catálogo, asignas departamentos (Taller / Instalación) y trabajadores. Las unidades se reparten **automáticamente** entre los trabajadores asignados.
-3. **Gestión de Usuarios**: CRUD completo. Protección anti-self-delete y anti-último-admin.
-4. **Piezas**: catálogo con foto.
-5. En el **detalle** de cada orden ves: badge prioridad, **código QR escaneable** (preview en modal), comentarios, historial de cambios (audit log) e historial de sesiones.
+- Lectura de todas las órdenes y creación restringida a su departamento (Taller o Instalación).
+- CRUD completo del catálogo de piezas.
+- Recibe **notificaciones en vivo** cuando un trabajador de su departamento completa su cuota; puede aprobarla con un click — el trabajador deja de ver la orden al instante.
+- No puede editar ni eliminar órdenes existentes, ni gestionar usuarios.
 
-### Como **Supervisor**
-- Ve KPIs y todas las órdenes (lectura) + puede **crear órdenes nuevas** restringidas a su departamento global (Taller / Instalación).
-- CRUD completo de **piezas**.
-- Recibe **notificaciones en vivo** cuando un trabajador de su departamento completa su cuota y puede aprobarla con un click — el trabajador deja de ver la orden al instante.
-- No puede editar/eliminar órdenes existentes ni gestionar usuarios.
+### Trabajador
 
-### Como **Trabajador**
-1. Ve **sólo sus órdenes asignadas** (filtrado en backend).
-2. **Play/Pausa/Stop** por fase. El input de piezas **sólo aparece en la fase final** ("Pintar" en Taller, "Instalación" en el dept Instalación).
-3. **Acceso Rápido**: Limpieza, Búsqueda, Mantenimiento, **Escanear QR** (cámara) para fichar.
-4. **Entrada Manual**: registra sesiones pasadas (limitado a últimos 30 días).
-5. **Cronómetro flotante** abajo a la derecha mientras hay sesión activa, persiste entre páginas.
+1. Solo ve las órdenes en las que está asignado (filtrado en el backend).
+2. **Play / Pausa / Stop** por fase. El input de piezas aparece únicamente en la fase final (Pintar en Taller, Instalación en el departamento Instalación).
+3. **Acceso rápido** a tareas comunes: Limpieza, Mantenimiento, Búsqueda y **escaneo QR** mediante cámara.
+4. **Entrada manual** de sesiones pasadas (rango máximo: últimos 30 días, sin fechas futuras).
+5. **Cronómetro flotante** persistente entre páginas mientras hay una sesión activa.
 6. **Mi Diario** con resumen del día.
-7. Notificaciones in-app cuando le asignan una nueva orden.
+7. Notificaciones in-app cuando se le asigna una nueva orden.
 
 ---
 
-## ⚡ Tiempo real (WebSockets · Laravel Reverb)
+## Comunicación en tiempo real
 
-La app actualiza vistas e infos **al instante**, sin recargar y sin polling agresivo:
+La aplicación actualiza vistas y notificaciones al instante, sin recargar y sin polling agresivo.
 
-- 🔔 **Notificaciones push**: cuando un trabajador completa su cuota se crea una notificación al supervisor y le aparece en la campana sin refrescar. El supervisor pulsa **Aprobar** → la orden desaparece de la lista del trabajador en tiempo real.
-- 📋 **Lista de órdenes viva**: crear/editar/duplicar/eliminar una orden, finalizar departamento o terminar una sesión emite un evento; cualquier admin/supervisor/trabajador con la lista abierta la ve refrescada automáticamente.
-- 🟢 **Stack**: [Laravel Reverb](https://reverb.laravel.com/) (servidor WebSocket nativo de Laravel 12) + [`laravel-echo`](https://laravel.com/docs/12.x/broadcasting#client-side-installation) + `pusher-js` en el frontend.
-- 🔒 **Canales privados** autenticados con Sanctum (`/api/broadcasting/auth`) — solo el dueño ve su canal `App.Models.User.{id}`. Canal público `work-orders` para señales de cambio.
-- 🪶 **Fail-safe**: si Reverb cae, el polling de fondo (cada 60 s) sigue manteniendo los datos al día. Cero pantallas rotas.
+- **Notificaciones push** instantáneas al supervisor cuando un trabajador completa su cuota. Al aprobarla, la orden desaparece de la lista del trabajador en tiempo real.
+- **Lista de órdenes viva**: las operaciones de crear, editar, duplicar, eliminar, finalizar departamento o terminar una sesión emiten un evento broadcast.
+- **Canales privados** autenticados con Sanctum (`/api/broadcasting/auth`). El canal público `work-orders` se utiliza para señales de cambio.
+- **Fail-safe**: si el WebSocket cae, el polling de respaldo (cada 60 s) mantiene los datos al día.
 
-### Arrancar Reverb en local
-```bash
-cd backend
-php artisan reverb:start         # WebSocket server en localhost:8080
-```
-Necesitas **3 terminales**: `php artisan serve` (API), `php artisan reverb:start` (WS), `npm run dev` (front).
+Variables relevantes (ya configuradas tras `php artisan reverb:install`):
 
-Variables relevantes (ya rellenadas por `reverb:install`):
 ```env
 # backend/.env
 BROADCAST_CONNECTION=reverb
@@ -301,75 +351,117 @@ VITE_REVERB_SCHEME=http
 
 ---
 
-## 🔐 Seguridad implementada
+## Aplicación instalable (PWA)
 
-- ✅ Sanctum Bearer tokens
-- ✅ Middleware `role:...` por endpoint
-- ✅ Trabajador no puede iniciar sesión en órdenes que no le pertenecen
-- ✅ Validación de cuota: no se pueden registrar más piezas que las asignadas
-- ✅ Sin sesiones concurrentes en la misma orden
-- ✅ Manual-session con rango de fechas validado (últimos 30 días, no futuro)
-- ✅ Admin no puede auto-eliminarse ni eliminar el último admin
-- ✅ Piezas en uso por órdenes no se pueden eliminar
-- ✅ Sanitización `strip_tags` en notas de sesiones
-- ✅ Mensajes de error de validación en español
-- ✅ Supervisor restringido a crear órdenes solo en su departamento global (validado en backend)
-- ✅ Canales privados Reverb autenticados con Sanctum
+Con el frontend corriendo, abre la URL desde el navegador del dispositivo (en la misma red Wi-Fi):
+
+- **Android (Chrome / Edge):** botón ámbar **"Instalar app"** arriba a la derecha, o menú → "Instalar app".
+- **iOS / iPad (Safari):** botón compartir → "Añadir a pantalla de inicio".
+- **Escritorio (Chrome / Edge):** icono de instalación en la barra de direcciones.
+
+La aplicación se abre a pantalla completa, sin barra del navegador, con su propio icono en el home.
+
+> Para conectarse desde otro dispositivo de la red local, sustituye `localhost` por la IP del PC (por ejemplo `192.168.1.42`) tanto en la URL del navegador como en `VITE_API_URL`.
 
 ---
 
-## 📦 Comandos útiles
+## Despliegue en la nube
+
+Stack productivo gratuito documentado paso a paso en [`Deploy.md`](./Deploy.md):
+
+- **Frontend** → Vercel (build automático desde GitHub).
+- **Backend** → Render (Docker, auto-deploy desde la rama `main`).
+- **MySQL** → Clever Cloud (addon `mysql-addon`, plan DEV).
+
+URLs de producción:
+
+- Frontend: https://orden-ya.vercel.app
+- API: https://ordenya-backend.onrender.com
+
+---
+
+## Seguridad
+
+- Autenticación Sanctum mediante Bearer tokens.
+- Middleware `role:admin,supervisor,trabajador` por endpoint.
+- Un trabajador no puede iniciar sesión en órdenes ajenas (validado en backend).
+- Cuota de piezas validada: no pueden registrarse más unidades que las asignadas.
+- Sesiones concurrentes en la misma orden bloqueadas.
+- `manualSession` con rango de fechas validado (últimos 30 días, sin fechas futuras).
+- Un administrador no puede auto-eliminarse ni eliminar al último administrador.
+- Las piezas referenciadas por órdenes no pueden borrarse.
+- Sanitización `strip_tags` en notas de sesiones.
+- Mensajes de validación en español (`lang/es/validation.php`).
+- Supervisor restringido a operar en su departamento global.
+- Canales WebSocket privados autenticados con Sanctum.
+- Throttling en `/auth/login` (10 intentos por minuto).
+- CORS configurado por dominio en producción.
+
+---
+
+## Comandos útiles
 
 ### Backend
+
 ```bash
-php artisan migrate:fresh --seed   # recrear DB desde cero con datos demo
-php artisan migrate                # aplicar migraciones nuevas
-php artisan db:seed                # rellenar datos demo
-php artisan route:list             # listar todas las rutas API
-php artisan config:clear           # limpiar caché de config
-./vendor/bin/pint                  # formatear código PHP
+php artisan migrate:fresh --seed     # Recrear la base de datos desde cero con datos demo
+php artisan migrate                  # Aplicar migraciones nuevas
+php artisan db:seed                  # Rellenar datos demo
+php artisan route:list               # Listar todas las rutas API
+php artisan reverb:start             # Arrancar servidor WebSocket
+php artisan config:clear             # Limpiar caché de configuración
+./vendor/bin/pint                    # Formatear código PHP (PSR-12)
+php artisan test                     # Ejecutar suite PHPUnit
 ```
 
 ### Frontend
+
 ```bash
-npm run dev      # servidor de desarrollo con hot reload
-npm run build    # build de producción en /dist
-npm run preview  # previsualizar el build
-npm run lint     # eslint
+npm run dev          # Servidor de desarrollo con Hot Module Replacement
+npm run build        # Build de producción en /dist
+npm run preview      # Previsualizar el build
+npm run lint         # ESLint
 ```
 
 ---
 
-## ❓ Problemas comunes
+## Resolución de problemas
 
-**"vendor/autoload.php not found"** → ejecuta `composer install` en `backend/`.
-
-**"could not connect to MySQL"** → arranca MySQL en XAMPP. Verifica `DB_HOST`, `DB_USERNAME`, `DB_PASSWORD` en `backend/.env`.
-
-**"Class App\Models\X not found"** → ejecuta `composer dump-autoload` en `backend/`.
-
-**Frontend muestra "Network Error" / CORS** → verifica que `frontend/.env` tenga `VITE_API_URL=http://localhost:8000/api` y que el backend esté arrancado.
-
-**Página en blanco al recargar** → reinicia `npm run dev`. Limpia caché del navegador con **Ctrl+Shift+R**.
-
-**Notificaciones / campana no se abren** → el service worker puede estar cacheado. En DevTools → Application → Service Workers → Unregister, y recarga.
-
-**El QR scanner no abre la cámara** → necesita HTTPS o `localhost`. En localhost funciona; en LAN con IP, requiere HTTPS o permitir cámara en `chrome://flags/#unsafely-treat-insecure-origin-as-secure`.
+| Síntoma                             | Causa probable                               | Solución                                                                              |
+| ------------------------------------ | -------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `vendor/autoload.php not found`    | Composer no ejecutado                        | `composer install` en `backend/`                                                   |
+| `could not connect to MySQL`       | MySQL parado o credenciales mal configuradas | Arrancar XAMPP; revisar `DB_*` en `.env`                                           |
+| `Class App\Models\X not found`     | Autoload desactualizado                      | `composer dump-autoload`                                                             |
+| Frontend `Network Error` o CORS    | API caída o `VITE_API_URL` mal            | Verificar `.env` + backend arrancado                                                 |
+| Página en blanco al recargar        | Cache del navegador                          | Ctrl+Shift+R; reiniciar `npm run dev`                                                |
+| Notificaciones o campana no se abren | Service Worker cacheado                      | DevTools → Application → Service Workers → Unregister                               |
+| QR scanner no abre la cámara        | Requiere HTTPS o `localhost`               | Usar `localhost` o flag `chrome://flags/#unsafely-treat-insecure-origin-as-secure` |
+| WebSocket no conecta                 | Reverb no arrancado                          | `php artisan reverb:start` en otra terminal                                          |
 
 ---
 
-## 🎯 Para la defensa — checklist
+## Lista de comprobación para la defensa
 
 - [ ] MySQL arrancado en XAMPP
-- [ ] `php artisan serve` en una terminal (deja la ventana abierta)
-- [ ] `php artisan reverb:start` en otra terminal (WebSockets — tiempo real)
-- [ ] `npm run dev` en otra terminal
-- [ ] Login `admin@admin.com` / `admin123`
-- [ ] Recorrer: Panel de Control → Lista de Órdenes → Detalle (mostrar QR + comentarios + audit) → Crear Orden → Gestión de Usuarios
-- [ ] Cambiar a `maria@trabajador.com` → enseñar fichaje + cronómetro flotante + escaneo QR (si hay móvil) + Mi Diario
-- [ ] Cambiar a `carlos@supervisor.com` → mostrar vista de sólo lectura
-- [ ] Toggle de tema oscuro/claro
-- [ ] Botón "Instalar app" → enseñar funcionalidad PWA
+- [ ] `php artisan serve` corriendo (terminal 1)
+- [ ] `php artisan reverb:start` corriendo (terminal 2)
+- [ ] `npm run dev` corriendo (terminal 3)
+- [ ] Login `admin@admin.com / admin123`
+- [ ] Recorrido: Panel de Control → Lista de Órdenes → Detalle (mostrar QR y auditoría) → Crear Orden → Gestión de Usuarios
+- [ ] Cambiar a `maria@trabajador.com`: fichaje, cronómetro flotante, escaneo QR, Mi Diario
+- [ ] Cambiar a `carlos@supervisor.com`: notificación en vivo al completar un trabajador y aprobación
+- [ ] Cambio de tema (oscuro/claro)
+- [ ] Demostración de instalación PWA en móvil
+- [ ] Versión desplegada en Vercel
 
-¡Listo para la defensa! 🚀
-"# OrdenYa" 
+---
+
+## Licencia y autoría
+
+**Proyecto académico** desarrollado como Trabajo de Fin de Grado. Código fuente publicado con fines educativos y de evaluación. Logos y marca comercial reservados.
+
+**Autor:** Francisco Pérez Ruiz
+**Centro:** IES Francisco De Los Ríos
+**Curso:** 2º Desarrollo De Aplicaciones Web
+**Tutor académico:** Javier Mejías Real
+**Repositorio:** https://github.com/Franfuu/OrdenYa
