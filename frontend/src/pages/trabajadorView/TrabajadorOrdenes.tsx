@@ -11,7 +11,6 @@ import { sileo } from "sileo";
 import { showHttpError } from "../../utils/errorHelper";
 import { LockIcon, BroomIcon, SearchIcon, SettingsIcon, ClockIcon, PlayIcon, PauseIcon, StopIcon } from "../../components/Icons";
 import { QRScanner } from "../../components/QRScanner";
-import { VoiceInput } from "../../components/VoiceInput";
 import { useWorkOrdersChannel } from "../../hooks/useWorkOrdersChannel";
 import "./OrdenesTemporizador.css";
 
@@ -564,7 +563,6 @@ export const TrabajadorOrdenes: React.FC = () => {
                               className="ordenes-timer__notas-input"
                               rows={2}
                             />
-                            <VoiceInput onResult={text => setNotasInput(prev => prev ? `${prev} ${text}` : text)} />
                           </div>
                         </div>
                       </div>
