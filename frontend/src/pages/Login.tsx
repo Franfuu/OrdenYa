@@ -61,7 +61,7 @@ export const Login: React.FC = () => {
 
           <div className="login-hero__stats">
             <div className="login-hero__stat">
-              <div className="login-hero__stat-num">3<span>·</span></div>
+              <div className="login-hero__stat-num">3<span>.</span></div>
               <div className="login-hero__stat-label">Roles definidos</div>
             </div>
             <div className="login-hero__stat">
@@ -86,8 +86,8 @@ export const Login: React.FC = () => {
       <main className="login-form-side">
         <div className="login-card">
           <span className="login-eyebrow">Acceso seguro</span>
-          <h2 className="login-title">Bienvenido de vuelta.</h2>
-          <p className="login-title-sub">Inicia sesión para continuar con tu jornada.</p>
+          <h2 className="login-title">Bienvenido.</h2>
+          <p className="login-title-sub">Inicia sesión para seguir con tu jornada.</p>
 
           <form onSubmit={handleSubmit} className="login-form">
             <div className="login-field">
